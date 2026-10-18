@@ -241,6 +241,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .dossier { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; align-items: start; }
 .grades { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.roster-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.tools { white-space: nowrap; }
 .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .choice, .team-card {
   text-align: left;
@@ -292,13 +294,13 @@ input[type="text"], input[type="number"], select {
 .modal h3 { font-family: var(--serif); margin: 0 0 8px; }
 .toasts {
   position: fixed;
-  right: 16px;
-  bottom: 72px;
+  left: 204px;
+  top: 76px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   z-index: 30;
-  max-width: min(320px, calc(100vw - 32px));
+  max-width: min(320px, calc(100vw - 220px));
   pointer-events: none;
 }
 .toast {
@@ -321,7 +323,8 @@ input[type="text"], input[type="number"], select {
 .legend { display: flex; gap: 14px; color: var(--muted); font-size: 12px; }
 
 @media (max-width: 1100px) {
-  .title-screen, .desk, .dossier, .split, .choices { grid-template-columns: 1fr; }
+  .title-screen, .desk, .dossier, .split, .roster-layout, .choices { grid-template-columns: 1fr; }
+  .toasts { left: 16px; top: auto; bottom: 72px; }
   .shell { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto; }
   .nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
   .topbar { flex-wrap: wrap; }

@@ -332,7 +332,7 @@ function viewRoster() {
       <td>${playerButton(p)}${p.injuredWeeks ? ` <span class="bad">IL ${p.injuredWeeks}w</span>` : ""}${p.onBlock ? ` <span class="muted">block</span>` : ""}</td>
       <td class="r num">${p.age}</td>
       <td class="r num">${shownOverall(career, p)}</td>
-      <td class="r">${toolsFor(p).map(([, key]) => grade(career, p, key)).join(" ")}</td>
+      <td class="tools">${toolsFor(p).map(([, key]) => grade(career, p, key)).join(" ")}</td>
       <td class="r num">${line}</td>
       <td class="r num">${fmtMoney(p.contract?.salary || 0)} / ${p.contract?.years || 0}y</td>
       <td>${farm ? "Farm" : "Active"}</td>
@@ -347,10 +347,10 @@ function viewRoster() {
     const options = arms.map((p) => `<option value="${p.id}" ${p.id === id ? "selected" : ""} ${p.injuredWeeks ? "disabled" : ""}>${esc(p.last)} · ${p.role}</option>`).join("");
     return `<div class="goal"><span>Game ${i + 1}</span><select data-act="rotation" data-index="${i}">${options}</select></div>`;
   }).join("");
-  return `<div class="split">
+  return `<div class="roster-layout">
     <section>
       <h3 class="section-title">Ledger</h3>
-      <table class="grid"><thead><tr><th>Pos</th><th>Player</th><th class="r">Age</th><th class="r">OVR</th><th class="r">Tools</th><th class="r">Season</th><th class="r">Deal</th><th></th></tr></thead><tbody>
+      <table class="grid"><thead><tr><th>Pos</th><th>Player</th><th class="r">Age</th><th class="r">OVR</th><th>Tools</th><th class="r">Season</th><th class="r">Deal</th><th></th></tr></thead><tbody>
       ${rows(team.active, false)}
       ${rows(team.farm, true)}
       </tbody></table>

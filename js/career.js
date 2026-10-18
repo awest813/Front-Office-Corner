@@ -660,7 +660,7 @@ function applyBox(state, rng, box, playoff = false) {
   home.attendanceTotal += crowd;
   home.homeGames += 1;
   if (home.id === state.userTeamId) {
-    state.books.tickets += (crowd * 32 * home.market) / 1e6;
+    state.books.tickets += (crowd * home.budget * 0.42) / 1e6;
     if (rate >= 0.96) state.meta.sellout = true;
   }
   for (const tid of [home.id, away.id]) {
@@ -680,7 +680,7 @@ function chargeDay(state) {
   const staff = state.staff.scouting + state.staff.development + state.staff.marketing + state.staff.analytics;
   state.books.payroll += payrollOf(state, team) / 56;
   state.books.staff += staff / 56;
-  state.books.media += (26 * team.market) / 56;
+  state.books.media += (team.budget * 0.58) / 56;
 }
 
 function userGames(state, week) {
