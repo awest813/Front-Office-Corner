@@ -1,0 +1,26 @@
+appId: com.frontofficecorner.game
+productName: Front Office Corner
+copyright: Copyright © Front Office Corner. Original work.
+directories:
+  output: dist
+files:
+  - index.html
+  - package.json
+  - css/**
+  - js/**
+  - assets/**
+  - electron/**
+asar: true
+linux:
+  target:
+    - AppImage
+  category: Game
+win:
+  target:
+    - nsis
+mac:
+  target:
+    - dmg
+  category: public.app-category.sports
+extraMetadata:
+  main: electron/main.cjs

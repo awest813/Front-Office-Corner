@@ -1,0 +1,190 @@
+{
+  "achievements": [
+    {
+      "id": "first_light",
+      "name": "First Light",
+      "description": "Win a game.",
+      "hidden": false
+    },
+    {
+      "id": "sweep",
+      "name": "Clean Series",
+      "description": "Sweep a series.",
+      "hidden": false
+    },
+    {
+      "id": "october",
+      "name": "October Bound",
+      "description": "Reach the playoffs.",
+      "hidden": false
+    },
+    {
+      "id": "pennant",
+      "name": "Pennant",
+      "description": "Win a league final.",
+      "hidden": false
+    },
+    {
+      "id": "title",
+      "name": "The Corner Office",
+      "description": "Win the Continental Series.",
+      "hidden": false
+    },
+    {
+      "id": "dynasty",
+      "name": "Dynasty",
+      "description": "Win three Continental Series.",
+      "hidden": false
+    },
+    {
+      "id": "heavy",
+      "name": "Heavy Favorite",
+      "description": "Win 36 games in a season.",
+      "hidden": false
+    },
+    {
+      "id": "profit",
+      "name": "In the Black",
+      "description": "Turn a profit.",
+      "hidden": false
+    },
+    {
+      "id": "five_black",
+      "name": "Five Clean Books",
+      "description": "Turn a profit in five seasons.",
+      "hidden": false
+    },
+    {
+      "id": "bargain",
+      "name": "Bargain Hunter",
+      "description": "Sign a real player well under market.",
+      "hidden": false
+    },
+    {
+      "id": "blockbuster",
+      "name": "Blockbuster",
+      "description": "Finish a trade involving four or more players.",
+      "hidden": false
+    },
+    {
+      "id": "roy",
+      "name": "The Kid",
+      "description": "Have your player win Rookie of the Year.",
+      "hidden": false
+    },
+    {
+      "id": "homegrown",
+      "name": "Homegrown",
+      "description": "Have a player you drafted win MVP.",
+      "hidden": false
+    },
+    {
+      "id": "firesale",
+      "name": "Tear-down",
+      "description": "Trade away three veterans, then win a title within six years.",
+      "hidden": false
+    },
+    {
+      "id": "perfect",
+      "name": "Perfect",
+      "description": "Have your staff throw a perfect game.",
+      "hidden": true
+    },
+    {
+      "id": "nono",
+      "name": "No-No",
+      "description": "Have your staff throw a no-hitter.",
+      "hidden": false
+    },
+    {
+      "id": "cycle",
+      "name": "The Cycle",
+      "description": "Have a player hit for the cycle.",
+      "hidden": true
+    },
+    {
+      "id": "longball",
+      "name": "The Long Ball",
+      "description": "Have a player hit 16 home runs.",
+      "hidden": false
+    },
+    {
+      "id": "ironman",
+      "name": "Ironman",
+      "description": "Have a player appear in all 56 games.",
+      "hidden": false
+    },
+    {
+      "id": "pink",
+      "name": "Pink Slip",
+      "description": "Get fired.",
+      "hidden": true
+    },
+    {
+      "id": "lifer",
+      "name": "Lifer",
+      "description": "Finish 15 seasons in the chair.",
+      "hidden": false
+    },
+    {
+      "id": "small_title",
+      "name": "Small Market Banner",
+      "description": "Win a title with a bottom-five payroll.",
+      "hidden": false
+    },
+    {
+      "id": "all_in",
+      "name": "All In",
+      "description": "Win a title in a year you bought at the deadline.",
+      "hidden": false
+    },
+    {
+      "id": "prospect",
+      "name": "Can't Miss",
+      "description": "Draft a prospect with 70-grade potential.",
+      "hidden": false
+    },
+    {
+      "id": "cy",
+      "name": "Ace",
+      "description": "Have your pitcher win the pitching prize.",
+      "hidden": false
+    },
+    {
+      "id": "sellout",
+      "name": "Sellout",
+      "description": "Pack the park.",
+      "hidden": false
+    },
+    {
+      "id": "comeback",
+      "name": "Comeback",
+      "description": "Win a title after your chair was in real trouble.",
+      "hidden": false
+    },
+    {
+      "id": "manual",
+      "name": "Read the Manual",
+      "description": "Read the front-office manual.",
+      "hidden": false
+    },
+    {
+      "id": "untouchable",
+      "name": "Untouchable",
+      "description": "Finish a season with security at 100.",
+      "hidden": false
+    },
+    {
+      "id": "clean",
+      "name": "Under the Line",
+      "description": "Finish with no dead money and payroll under the luxury line.",
+      "hidden": false
+    },
+    {
+      "id": "hall",
+      "name": "Hall of Fame",
+      "description": "Retire after 10 seasons with at least one title.",
+      "hidden": true
+    }
+  ]
+}
