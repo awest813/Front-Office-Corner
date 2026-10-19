@@ -40,7 +40,17 @@ Save version is 1 (`SAVE_VERSION` in `js/data.js`).
 
 ## Achievements
 
-In-game trophies are granted locally and listed in the trophy case. `steam/achievements.json` matches `js/achieve.js`. Steam will not show them until the partner site has the same API names and a build calls the Steamworks stats API. This repo does not link that API, so a public launch still needs that wiring (or a decision to ship the in-game case only and leave the Steam achievement count at zero).
+In-game trophies are granted locally and listed in the trophy case. `steam/achievements.json` matches `js/achieve.js`. The Electron shell forwards a new unlock to Steam when `steamworks.js` is installed beside the app.
+
+The bridge is optional. It is not an npm dependency, and the Steamworks redistributables are not in this repository. Install the module only on the machine that packages a build:
+
+```bash
+npm install steamworks.js
+```
+
+`electron/steam.cjs` reads the app id from `FOC_STEAM_APP_ID`, then from `steam_appid.txt` in the working directory, beside the executable, in `resources`, or at the project root. It does not read `steam/steam_appid.txt.example`. `480` is Spacewar and is only for a local client test. Do not put `steam_appid.txt` in an uploaded depot. If the module or the app id is missing, the game still runs and the trophy case still fills in.
+
+On the partner site, create API names that match the `id` field. The overlay call runs before the window opens. A restart through Steam, when Steam asks for one, quits this process instead of opening a second window.
 
 ## Store page
 
@@ -52,7 +62,7 @@ Use `steam/STORE.md` for the short and long descriptions, tags, requirements, an
 2. Upload capsules from the title screen. Sizes are listed in `steam/STORE.md`.
 3. Set the launch options to the Electron executable. No command-line arguments are required.
 4. Price, platforms, and the build review.
-5. If Steam achievements should pop, add the API names from `steam/achievements.json` and a small Steamworks init beside `electron/main.cjs`. Do not commit the SDK redistributables.
+5. If Steam achievements should pop, add the API names from `steam/achievements.json` and `npm install steamworks.js` on the packaging machine. Do not commit the SDK redistributables. Leave `steam_appid.txt` out of the depot.
 6. Run the store-page content survey with the answers in `steam/STORE.md`.
 
 ## What “done” means for a first public build

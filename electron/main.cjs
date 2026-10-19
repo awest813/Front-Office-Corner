@@ -1,6 +1,9 @@
 const { app, BrowserWindow, Menu, ipcMain } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const steam = require("./steam.cjs");
+
+steam.prepareOverlay();
 
 function autosavePath() {
   return path.join(app.getPath("userData"), "saves", "autosave.json");
@@ -22,6 +25,8 @@ ipcMain.handle("foc-write-autosave", (_event, text) => {
   return true;
 });
 
+ipcMain.handle("foc-activate-achievement", (_event, id) => steam.activateAchievement(id));
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -30,6 +35,7 @@ function createWindow() {
     minHeight: 700,
     backgroundColor: "#12100d",
     title: "Front Office Corner",
+    icon: path.join(__dirname, "..", "assets", "icon.png"),
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
@@ -42,6 +48,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (steam.initSteam() === "restarting") {
+    app.quit();
+    return;
+  }
   Menu.setApplicationMenu(null);
   createWindow();
   app.on("activate", () => {

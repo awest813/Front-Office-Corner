@@ -75,4 +75,4 @@ Produce these from the title screen (walnut field, brass wordmark, club seal). D
 
 ## Achievements
 
-Thirty-one achievements are defined in `steam/achievements.json` and unlocked inside the game. Hidden ones are Perfect, The Cycle, Pink Slip, and Hall of Fame. Create matching API names in Steamworks before a public build, using the `id` field as the API name.
+Thirty-one achievements are defined in `steam/achievements.json` and unlocked inside the game. The desktop build forwards those ids to Steam when `steamworks.js` is installed. Hidden ones are Perfect, The Cycle, Pink Slip, and Hall of Fame. Create matching API names in Steamworks before a public build, using the `id` field as the API name.

@@ -121,6 +121,14 @@ await page.setViewport({ width: 1280, height: 720 });
 await page.click("[data-act=menu]");
 await page.waitForSelector("[data-act=export]");
 await shot("15-office");
+await page.click(".modal [data-act=title]");
+await page.waitForFunction(() => /New career/.test(document.body.innerText));
+const continueDisabled = await page.$eval("[data-act=continue]", (el) => el.disabled);
+if (continueDisabled) throw new Error("Continue stayed disabled after leaving the desk");
+await page.click("[data-act=continue]");
+await page.waitForSelector(".identity");
+const restored = await page.$eval(".identity", (el) => el.innerText);
+if (!/Gulls/.test(restored)) throw new Error(`Continue did not restore the career: ${restored}`);
 
 if (errors.length) {
   console.error(errors.join("\n"));

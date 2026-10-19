@@ -298,7 +298,6 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
 
   function playHalf(side) {
     const order = side === "home" ? homeOrder : awayOrder;
-    const battingTeam = side === "home" ? home : away;
     const def = side === "home" ? awayDef : homeDef;
     const staff = defenseStaff(side);
     let outs = 0;
@@ -344,7 +343,6 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
       const beforeA = awayScore;
       let type = plate(rng, batter, pit.player, def, park);
       addBat(batter, "pa", 1);
-      const prevOuts = outs;
       if (type === "K") {
         addBat(batter, "ab", 1);
         addBat(batter, "k", 1);
@@ -446,8 +444,6 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
         walkoff = true;
         break;
       }
-      void battingTeam;
-      void prevOuts;
     }
     return runs;
   }

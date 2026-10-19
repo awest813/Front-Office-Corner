@@ -133,9 +133,13 @@ function toast(text, kind = "") {
 
 function consumeToasts() {
   if (!career) return;
-  for (const name of takeToasts(career)) {
+  for (const item of takeToasts(career)) {
+    const name = typeof item === "string" ? item : item?.name;
+    const id = typeof item === "string" ? null : item?.id;
+    if (!name) continue;
     toast(`Trophy unlocked: ${name}`, "trophy");
     playTrophy();
+    if (id) window.foc?.activateAchievement?.(id);
   }
 }
 

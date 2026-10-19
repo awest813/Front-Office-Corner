@@ -15,7 +15,6 @@ import {
 import {
   autoLineup,
   autoRotation,
-  batScore,
   canPlay,
   createPlayer,
   displayGrade,
@@ -27,7 +26,6 @@ import {
   marketSalary,
   overall,
   payrollOf,
-  powerScore,
   rosterPlayers,
   stockTeam,
   surplusValue,
@@ -40,7 +38,6 @@ import {
   fullName,
   makeRng,
   mutate,
-  possessive,
   round1,
   teamLabel,
 } from "./util.js";
@@ -482,10 +479,10 @@ function beginYear(state, rng, advanced) {
     `The ${team.name} report to ${team.parkName}.`,
     `First series: ${openingOpponent(state)}. ${team.owner.name} wants three things this year, and the chair is yours until it is not.`,
   );
-  campBattle(state, rng);
+  campBattle(state);
 }
 
-function campBattle(state, rng) {
+function campBattle(state) {
   const team = userTeam(state);
   const arms = team.active.map((id) => state.players[id]).filter((p) => p && p.isPitcher && !p.injuredWeeks);
   if (arms.length < 6) return;
@@ -499,7 +496,6 @@ function campBattle(state, rng) {
     aId: a.id,
     bId: b.id,
   });
-  void rng;
 }
 
 export function createCareer(opts = {}) {
@@ -681,31 +677,6 @@ function chargeDay(state) {
   state.books.payroll += payrollOf(state, team) / 56;
   state.books.staff += staff / 56;
   state.books.media += (team.budget * 0.58) / 56;
-}
-
-function userGames(state, week) {
-  const games = state.schedule[week] || [];
-  const series = games.find((g) => g.home === state.userTeamId || g.away === state.userTeamId);
-  if (!series) return [];
-  return series.results.filter(Boolean);
-}
-
-function weekRecord(boxes) {
-  let w = 0;
-  let l = 0;
-  for (const box of boxes) {
-    if (box.winner === box.homeId || box.winner === box.awayId) {
-      if (box.winner) {
-        // counted below
-      }
-    }
-    w += 0;
-  }
-  return boxes.reduce((rec, box) => {
-    if (box.winner === rec.userId) rec.w += 1;
-    else rec.l += 1;
-    return rec;
-  }, { w: 0, l: 0, userId: null });
 }
 
 function summarizeWeek(state, week) {
@@ -1024,13 +995,12 @@ function simPlayoffInner(state, rng) {
   } else if (po.round === "lcs") {
     for (const league of Object.values(po.leagues)) playSeriesGame(state, rng, league.final);
     if (Object.values(po.leagues).every((l) => l.final?.winner)) {
-      for (const [name, league] of Object.entries(po.leagues)) {
+      for (const league of Object.values(po.leagues)) {
         league.champion = league.final.winner;
         if (league.champion === state.userTeamId) {
           po.userFinish = "pennant";
           state.meta.pennants += 1;
         }
-        void name;
       }
       const harbor = po.leagues.Harbor.champion;
       const summit = po.leagues.Summit.champion;
@@ -1697,16 +1667,14 @@ function executeTrade(state, rng, theirId, sendIds, recvIds, cashSend, cashRecv)
   state.books.cashOut += cashSend;
   state.books.cashIn += cashRecv;
   if (sent.length + got.length >= 4) state.meta.blockbuster = true;
-  const vets = sent.filter((p) => p.age >= 30 && !p.isPitcher ? overall(p) >= 50 : p.age >= 30 && talentWar(p) > 0.8).length;
   state.meta.fireSale += sent.filter((p) => p.age >= 30).length;
   if (state.meta.fireSale >= 3) state.meta.fireSaleYear = state.year;
   if (cashSend > cashRecv || got.some((p) => p.age >= 29 && talentWar(p) > 1)) state.meta.buyer = true;
-  void vets;
   ensureRosters(state, rng);
   pushNews(state, {
     kind: "trade",
     title: `Trade with ${them.city}`,
-    body: `${user.city} send ${sent.map((p) => p.last).join(", ")} to ${them.city} for ${got.map((p) => p.last).join(", ")}.`,
+    body: `${user.city} sends ${sent.map((p) => p.last).join(", ")} to ${them.city} for ${got.map((p) => p.last).join(", ")}.`,
   });
 }
 
@@ -2165,10 +2133,3 @@ export function takeToasts(state) {
   state.pendingToasts = [];
   return list;
 }
-
-void weekRecord;
-void userGames;
-void batScore;
-void powerScore;
-void possessive;
-void makeRng;

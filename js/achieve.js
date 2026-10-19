@@ -40,7 +40,7 @@ function unlock(state, id) {
   if (state.achievements[id]) return null;
   state.achievements[id] = { year: state.year, week: state.week };
   const def = achievementById(id);
-  return def ? def.name : id;
+  return { id, name: def ? def.name : id };
 }
 
 export function evaluateAchievements(state) {
@@ -48,8 +48,8 @@ export function evaluateAchievements(state) {
   const fresh = [];
   const give = (id, cond) => {
     if (cond) {
-      const name = unlock(state, id);
-      if (name) fresh.push(name);
+      const trophy = unlock(state, id);
+      if (trophy) fresh.push(trophy);
     }
   };
   give("first_light", (m.careerWins || 0) > 0);

@@ -11,16 +11,20 @@ files:
   - assets/**
   - electron/**
 asar: true
+icon: assets/icon.png
 linux:
   target:
     - AppImage
   category: Game
+  icon: assets/icon.png
 win:
   target:
     - nsis
+  icon: assets/icon.png
 mac:
   target:
     - dmg
   category: public.app-category.sports
+  icon: assets/icon.png
 extraMetadata:
   main: electron/main.cjs
