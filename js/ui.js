@@ -321,7 +321,10 @@ function actionbar() {
   if (career.phase === "free_agency") push("advance-fa", "Advance free agency", true);
   if (career.phase === "draft") push("draft-best", "Take the top name on your board", true);
   if (career.phase === "camp") push("open-camp", "Open camp", true);
-  return `<footer class="actionbar">${buttons.join("")}<span class="spacer">Front Office Corner ${GAME_VERSION}</span></footer>`;
+  const notes = ui.toasts.length
+    ? `<div class="bar-notes">${ui.toasts.map((t) => `<div class="toast ${t.kind}">${esc(t.text)}</div>`).join("")}</div>`
+    : "";
+  return `<footer class="actionbar"><div class="bar-actions">${buttons.join("")}</div><span class="spacer">Front Office Corner ${GAME_VERSION}</span>${notes}</footer>`;
 }
 
 function viewDesk() {
@@ -359,11 +362,11 @@ function viewDesk() {
     <div class="stack">
       <section class="card"><h3>This week</h3>${agenda}</section>
       ${plan}
-      <section class="card"><h3>Owner's goals</h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style.replace("-", " "))}. ${esc(team.blurb)}</p></section>
       <section class="card"><h3>This series</h3>${next}</section>
       <section class="card"><h3>Inbox</h3>${inboxHtml}</section>
       ${slate}
       ${growth}
+      <section class="card"><h3>Owner's goals</h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style.replace("-", " "))}. ${esc(team.blurb)}</p></section>
       ${digest}
     </div>
   </div>`;
@@ -829,6 +832,8 @@ function tutorialHtml() {
 }
 
 function toastsHtml() {
+  const inShell = career && ui.screen === "game" && !(career.phase === "legacy" && ui.view !== "trophies");
+  if (inShell) return "";
   return `<div class="toasts">${ui.toasts.map((t) => `<div class="toast ${t.kind}" data-toast="${t.id}">${esc(t.text)}</div>`).join("")}</div>`;
 }
 

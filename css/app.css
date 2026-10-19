@@ -143,16 +143,27 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   color: var(--muted);
 }
 .nav button.on, .nav button:hover { background: var(--panel); color: var(--text); }
-.stage { overflow: auto; padding: 18px 20px 28px; }
+.stage { overflow: auto; padding: 18px 20px 28px; min-height: 0; }
 .actionbar {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
   align-items: center;
   padding: 10px 16px;
   border-top: 1px solid var(--line);
   background: #16130f;
 }
-.actionbar .spacer { margin-left: auto; color: var(--muted); font-size: 12px; }
+.bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actionbar .spacer { color: var(--muted); font-size: 12px; justify-self: end; }
+.bar-notes {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+.bar-notes .toast { max-width: min(560px, 100%); }
 
 .desk {
   display: grid;
