@@ -56,9 +56,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .title-screen {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(320px, 560px) minmax(260px, 340px);
-  gap: 48px;
-  padding: 64px 72px;
+  grid-template-columns: minmax(260px, 420px) minmax(280px, 560px) minmax(220px, 280px);
+  gap: 36px;
+  padding: 64px 48px;
   align-items: center;
   justify-content: center;
 }
@@ -82,7 +82,11 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
+.kicker .ico { width: 14px; height: 14px; }
 .tagline { color: var(--muted); font-size: 18px; max-width: 36ch; }
 .menu { display: flex; flex-direction: column; gap: 10px; max-width: 280px; }
 .version { color: var(--muted); font-size: 12px; margin-top: 18px; }
@@ -135,6 +139,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   background: rgba(20, 17, 14, 0.65);
 }
 .nav button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-align: left;
   background: transparent;
   border: 0;
@@ -143,6 +150,33 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   color: var(--muted);
 }
 .nav button.on, .nav button:hover { background: var(--panel); color: var(--text); }
+.nav .badge { margin-left: auto; }
+.ico {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nav .ico { width: 16px; height: 16px; }
+.card > h3 { display: flex; align-items: center; gap: 8px; }
+.card > h3 .ico { width: 16px; height: 16px; color: var(--brass); }
+.seal { display: block; flex: none; }
+.club { display: inline-flex; align-items: center; gap: 8px; }
+.plate {
+  margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--brass-deep);
+  box-shadow: var(--shadow);
+  align-self: center;
+}
+.plate img { display: block; width: 100%; height: auto; }
+.trophy-card { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 14px; align-items: start; }
+.trophy-card > img { width: 100%; border-radius: 10px; border: 1px solid var(--brass-deep); display: block; }
 .stage { overflow: auto; padding: 18px 20px 28px; min-height: 0; }
 .actionbar {
   display: grid;
@@ -187,7 +221,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   padding: 6px 0;
   font-family: var(--serif);
 }
-.mast strong { font-size: 28px; letter-spacing: -0.03em; }
+.mast strong { font-size: 28px; letter-spacing: -0.03em; display: inline-flex; align-items: center; gap: 8px; }
+.paper .ico { width: 16px; height: 16px; color: #6b4e2e; }
 .paper h3 { font-family: var(--serif); font-size: 34px; line-height: 1.05; margin: 12px 0 8px; }
 .deck { font-family: var(--serif); font-style: italic; font-size: 18px; margin: 0 0 10px; }
 .paper p { margin: 0; font-size: 15px; line-height: 1.45; }
@@ -284,7 +319,9 @@ button.agenda:hover { color: var(--text); }
 }
 .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .plan-grid .choice { padding: 8px 10px; }
-.plan-grid .choice strong { font-size: 16px; }
+.plan-grid .choice strong { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.plan-grid .choice strong span { margin: 0; color: var(--text); font-size: 16px; }
+.plan-grid .choice .ico { width: 18px; height: 18px; color: var(--brass); }
 .plan-grid .choice:disabled { opacity: 0.55; cursor: default; transform: none; }
 
 .dossier { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; align-items: start; }
@@ -373,7 +410,7 @@ input[type="text"], input[type="number"], select {
 .legend { display: flex; gap: 14px; color: var(--muted); font-size: 12px; }
 
 @media (max-width: 1100px) {
-  .title-screen, .desk, .dossier, .split, .roster-layout, .choices { grid-template-columns: 1fr; }
+  .title-screen, .desk, .dossier, .split, .roster-layout, .choices, .trophy-card { grid-template-columns: 1fr; }
   .toasts { left: 16px; top: auto; bottom: 72px; }
   .shell { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto; }
   .nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }

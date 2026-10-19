@@ -15,6 +15,8 @@ import {
   weekAgenda,
 } from "../js/career.js";
 import { playerReport, playerRole } from "../js/report.js";
+import { crest, icon } from "../js/marks.js";
+import { TEAMS } from "../js/data.js";
 
 test("a scouting report names the player and hides raw grades when the fog is thick", () => {
   const state = createCareer({ seed: 5, teamId: "gulls", gmName: "Casey Quinn" });
@@ -114,6 +116,17 @@ test("one series can leave a desk note without breaking the roster", () => {
     if (item.kind === "callup") assert.equal(state.players[item.playerId].teamId, "gulls");
   }
   assert.equal(audit(state).length, 0, audit(state).join("; "));
+});
+
+test("every club has a mark and the desk icons draw", () => {
+  for (const team of TEAMS) {
+    const mark = crest(team.id);
+    assert.ok(mark.includes("currentColor"), team.id);
+    assert.ok(mark.length > 20, team.id);
+  }
+  for (const name of ["desk", "roster", "standings", "scores", "wire", "market", "books", "leaders", "october", "trophies", "bats", "arms", "gloves", "rest"]) {
+    assert.match(icon(name), /<svg/);
+  }
 });
 
 test("the week list and the series plan", () => {

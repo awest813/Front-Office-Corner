@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 1;
-export const GAME_VERSION = "1.2.0";
+export const GAME_VERSION = "1.3.0";
 export const MIN_SALARY = 0.74;
 export const LUXURY = 165;
 export const DEADLINE_WEEK = 10;

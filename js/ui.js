@@ -59,6 +59,7 @@ import {
   userTeamOf,
 } from "./career.js";
 import { confidenceLabel } from "./roster.js";
+import { crest, icon } from "./marks.js";
 import { playerReport, playerRole } from "./report.js";
 import { esc, fmtAvg, fmtEra, fmtIp, fmtMoney, fmtPct, fullName } from "./util.js";
 import { playClick, playConfirm, playLoss, playTrophy, playWeek, playWin, resumeAudio, syncMusic } from "./audio.js";
@@ -150,8 +151,7 @@ function consumeToasts() {
 
 function seal(team, size = 52) {
   const [fill, ink] = team.colors;
-  const letters = team.name.slice(0, 2).toUpperCase();
-  return `<svg class="seal" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="${fill}"/><circle cx="32" cy="32" r="23" fill="none" stroke="${ink}" stroke-width="2"/><text x="32" y="38" text-anchor="middle" fill="${ink}" font-size="16" font-family="Noto Serif, serif">${letters}</text></svg>`;
+  return `<svg class="seal" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="${fill}"/><circle cx="32" cy="32" r="24.5" fill="none" stroke="${ink}" stroke-width="1.25" opacity="0.75"/><g style="color:${ink}">${crest(team.id)}</g></svg>`;
 }
 
 function phaseLabel(state) {
@@ -286,7 +286,7 @@ function prepareDraft() {
 function shell(body) {
   const team = userTeamOf(career);
   const openDesk = weekAgenda(career).filter((item) => item.tone !== "done").length;
-  const nav = VIEWS.map(([id, label]) => `<button type="button" data-act="nav" data-view="${id}" class="${ui.view === id ? "on" : ""}">${label}${id === "desk" && openDesk ? `<span class="badge">${openDesk}</span>` : ""}</button>`).join("");
+  const nav = VIEWS.map(([id, label]) => `<button type="button" data-act="nav" data-view="${id}" class="${ui.view === id ? "on" : ""}">${icon(id)}<span>${label}</span>${id === "desk" && openDesk ? `<span class="badge">${openDesk}</span>` : ""}</button>`).join("");
   const security = career.gm.security;
   return `<div class="shell">
     <header class="topbar">
@@ -344,7 +344,7 @@ function viewDesk() {
   const inboxHtml = inbox.length ? inbox.map(inboxCard).join("") : `<p class="muted">The inbox is clear.</p>`;
   const digest = career.digest?.length > 1 ? `<div class="card"><h3>While the weeks ran</h3>${career.digest.slice(-8).map((d) => `<div class="goal"><span>Week ${d.week}</span><span>${esc(d.text)}</span></div>`).join("")}</div>` : "";
   const focus = (career.focus || []).map((id) => career.players[id]).filter(Boolean);
-  const slate = career.staffLocked ? "" : `<section class="card"><h3>Development slate</h3>${focus.length ? focus.map((p) => `<div class="goal"><span>${playerButton(p)}</span><span>${esc(playerRole(p))}</span></div>`).join("") : "<p class=\"muted\">Name two farm players, 25 or under, from the ledger. They get the extra winter reps.</p>"}</section>`;
+  const slate = career.staffLocked ? "" : `<section class="card"><h3>${icon("slate")}<span>Development slate</span></h3>${focus.length ? focus.map((p) => `<div class="goal"><span>${playerButton(p)}</span><span>${esc(playerRole(p))}</span></div>`).join("") : "<p class=\"muted\">Name two farm players, 25 or under, from the ledger. They get the extra winter reps.</p>"}</section>`;
   const growth = career.growth && (career.growth.rose.length || career.growth.fell.length) ? `<section class="card"><h3>Since last winter</h3>${career.growth.rose.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="good">${row.from} to ${row.to}</span></div>`).join("")}${career.growth.fell.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="bad">${row.from} to ${row.to}</span></div>`).join("")}</section>` : "";
   const agenda = weekAgenda(career).map((item) => {
     const cls = `agenda ${item.tone}`;
@@ -354,19 +354,19 @@ function viewDesk() {
   const plan = planCard();
   return `<div class="desk">
     <article class="paper">
-      <div class="mast"><strong>${esc(paper.kicker || "The Corner Post")}</strong><span>${career.year}</span></div>
+      <div class="mast"><strong>${icon("diamond")}<span>${esc(paper.kicker || "The Corner Post")}</span></strong><span>${career.year}</span></div>
       <h3>${esc(paper.headline || "")}</h3>
       <p class="deck">${esc(paper.deck || "")}</p>
       <p>${esc(paper.body || "")}</p>
     </article>
     <div class="stack">
-      <section class="card"><h3>This week</h3>${agenda}</section>
+      <section class="card"><h3>${icon("week")}<span>This week</span></h3>${agenda}</section>
       ${plan}
-      <section class="card"><h3>This series</h3>${next}</section>
-      <section class="card"><h3>Inbox</h3>${inboxHtml}</section>
+      <section class="card"><h3>${icon("series")}<span>This series</span></h3>${next}</section>
+      <section class="card"><h3>${icon("inbox")}<span>Inbox</span></h3>${inboxHtml}</section>
       ${slate}
       ${growth}
-      <section class="card"><h3>Owner's goals</h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style.replace("-", " "))}. ${esc(team.blurb)}</p></section>
+      <section class="card"><h3>${icon("goals")}<span>Owner's goals</span></h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style.replace("-", " "))}. ${esc(team.blurb)}</p></section>
       ${digest}
     </div>
   </div>`;
@@ -377,11 +377,11 @@ function planCard() {
   const locked = career.day > 0;
   const current = career.plan && career.plan.week === career.week ? career.plan.focus : "";
   const named = PLANS.find((plan) => plan.id === current);
-  const buttons = PLANS.map((plan) => `<button type="button" class="choice ${current === plan.id ? "on" : ""}" data-act="plan" data-id="${plan.id}" ${locked ? "disabled" : ""}><strong>${esc(plan.title)}</strong><span>${esc(plan.text)}</span></button>`).join("");
+  const buttons = PLANS.map((plan) => `<button type="button" class="choice ${current === plan.id ? "on" : ""}" data-act="plan" data-id="${plan.id}" ${locked ? "disabled" : ""}><strong>${icon(plan.id)}<span>${esc(plan.title)}</span></strong><span>${esc(plan.text)}</span></button>`).join("");
   const note = named
     ? (locked ? `${named.title} is locked until the next series.` : `This series: ${named.title}.`)
     : (locked ? "No plan this series. The next one is still open." : "It lasts four games, then you name another.");
-  return `<section class="card"><h3>Series plan</h3><div class="plan-grid">${buttons}</div><p class="muted">${esc(note)}</p></section>`;
+  return `<section class="card"><h3>${icon("bats")}<span>Series plan</span></h3><div class="plan-grid">${buttons}</div><p class="muted">${esc(note)}</p></section>`;
 }
 
 function inboxCard(item) {
@@ -503,7 +503,7 @@ function viewPlayer(p) {
 }
 
 function viewStandings() {
-  return standings(career).map((league) => `<section><h3 class="section-title">${esc(league.league)} League</h3>${league.divisions.map((div) => `<h4>${esc(div.division)}</h4><table class="grid"><thead><tr><th>Club</th><th class="r">W</th><th class="r">L</th><th class="r">PCT</th><th class="r">GB</th><th class="r">RS</th><th class="r">RA</th></tr></thead><tbody>${div.teams.map(({ team, gb }) => `<tr class="${team.id === career.userTeamId ? "good" : ""}"><td>${esc(team.city)} ${esc(team.name)}</td><td class="r num">${team.wins}</td><td class="r num">${team.losses}</td><td class="r num">${fmtPct(team.wins, team.losses)}</td><td class="r num">${gb ? gb.toFixed(1) : "—"}</td><td class="r num">${team.rs}</td><td class="r num">${team.ra}</td></tr>`).join("")}</tbody></table>`).join("")}</section>`).join("");
+  return standings(career).map((league) => `<section><h3 class="section-title">${esc(league.league)} League</h3>${league.divisions.map((div) => `<h4>${esc(div.division)}</h4><table class="grid"><thead><tr><th>Club</th><th class="r">W</th><th class="r">L</th><th class="r">PCT</th><th class="r">GB</th><th class="r">RS</th><th class="r">RA</th></tr></thead><tbody>${div.teams.map(({ team, gb }) => `<tr class="${team.id === career.userTeamId ? "good" : ""}"><td><span class="club">${seal(team, 28)}<span>${esc(team.city)} ${esc(team.name)}</span></span></td><td class="r num">${team.wins}</td><td class="r num">${team.losses}</td><td class="r num">${fmtPct(team.wins, team.losses)}</td><td class="r num">${gb ? gb.toFixed(1) : "—"}</td><td class="r num">${team.rs}</td><td class="r num">${team.ra}</td></tr>`).join("")}</tbody></table>`).join("")}</section>`).join("");
 }
 
 function linescore(box) {
@@ -512,7 +512,7 @@ function linescore(box) {
   const row = (id, inns, runs, hits, err) => {
     const team = teamOf(career, id);
     const cells = Array.from({ length: n }, (_, i) => `<td class="r num">${inns[i] ?? ""}</td>`).join("");
-    return `<tr><td>${esc(team.name)}</td>${cells}<td class="r num"><b>${runs}</b></td><td class="r num">${hits}</td><td class="r num">${err}</td></tr>`;
+    return `<tr><td><span class="club">${seal(team, 22)}<span>${esc(team.name)}</span></span></td>${cells}<td class="r num"><b>${runs}</b></td><td class="r num">${hits}</td><td class="r num">${err}</td></tr>`;
   };
   const notes = (box.notes || []).slice(0, 8).map((n) => `<li>${esc(n)}</li>`).join("");
   const arm = (id) => (id && career.players[id] ? esc(fullName(career.players[id])) : "");
@@ -534,9 +534,9 @@ function viewScores() {
     if (!box) return "";
     const home = teamOf(career, box.homeId);
     const away = teamOf(career, box.awayId);
-    return `<div class="series"><span>${esc(away.name)} ${box.awayRuns}</span><span>${esc(home.name)} ${box.homeRuns}</span></div>`;
+    return `<div class="series"><span class="club">${seal(away, 22)}<span>${esc(away.name)} ${box.awayRuns}</span></span><span class="club">${seal(home, 22)}<span>${esc(home.name)} ${box.homeRuns}</span></span></div>`;
   }).join("");
-  return `<div class="split"><section class="card"><h3>Your series</h3>${yours}</section><section class="card"><h3>Around the league</h3>${board || "<p class='muted'>No scores yet.</p>"}</section></div>`;
+  return `<div class="split"><section class="card"><h3>${icon("scores")}<span>Your series</span></h3>${yours}</section><section class="card"><h3>${icon("wire")}<span>Around the league</span></h3>${board || "<p class='muted'>No scores yet.</p>"}</section></div>`;
 }
 
 function viewWire() {
@@ -700,7 +700,7 @@ function viewTrophies() {
     const a = row.awards || {};
     return `<div class="goal"><span>${row.year}</span><span>MVP ${esc(a.mvp?.name || "—")} · Pitching ${esc(a.cy?.name || "—")} · Rookie ${esc(a.roy?.name || "—")}</span></div>`;
   }).join("");
-  return `<div class="split"><section class="card"><h3>Trophy case</h3>${rows}</section><section class="stack"><div class="card"><h3>Continental champions</h3>${champs || "<p class='muted'>No banners yet.</p>"}<h3>Your seasons</h3>${career.seasons.map((s) => `<div class="goal"><span>${s.year} ${s.w}-${s.l}</span><span>${esc(s.finish)} · ${fmtMoney(s.profit)}</span></div>`).join("") || "<p class='muted'>The log is empty.</p>"}</div><div class="card"><h3>Award history</h3>${awards || "<p class='muted'>The record book opens after the first year.</p>"}</div></section></div>`;
+  return `<div class="split"><section class="card trophy-card"><img src="assets/brass-cup.jpg" alt="The league cup, brass, with a diamond cut into the bowl."><div><h3>${icon("trophies")}<span>Trophy case</span></h3>${rows}</div></section><section class="stack"><div class="card"><h3>${icon("october")}<span>Continental champions</span></h3>${champs || "<p class='muted'>No banners yet.</p>"}<h3>Your seasons</h3>${career.seasons.map((s) => `<div class="goal"><span>${s.year} ${s.w}-${s.l}</span><span>${esc(s.finish)} · ${fmtMoney(s.profit)}</span></div>`).join("") || "<p class='muted'>The log is empty.</p>"}</div><div class="card"><h3>${icon("leaders")}<span>Award history</span></h3>${awards || "<p class='muted'>The record book opens after the first year.</p>"}</div></section></div>`;
 }
 
 function viewRecap() {
@@ -741,11 +741,12 @@ function viewLegacy(embedded = false) {
 function viewTitle() {
   return `<div class="title-screen">
     <div class="brand">
-      <div class="kicker">Continental Diamond League</div>
+      <div class="kicker">${icon("diamond")}<span>Continental Diamond League</span></div>
       <h1>Front Office<span>Corner</span></h1>
       <p class="tagline">Run the club. Keep the job. Win October.</p>
       <p class="version">Edition ${GAME_VERSION} · Original league, original clubs, no real teams.</p>
     </div>
+    <figure class="plate"><img src="assets/office-night.jpg" alt="A brass lamp, a baseball, and the diamond beyond a rain-streaked window."></figure>
     <div class="menu">
       <button type="button" class="btn-primary" data-act="goto-new">New career</button>
       <button type="button" class="btn" data-act="continue" ${hasAutosave() ? "" : "disabled"}>Continue</button>
@@ -806,6 +807,7 @@ function viewCredits() {
     <p>Front Office Corner is an original career sim. The Continental Diamond League, its cities, and its clubs are fictional. It is not affiliated with any real league, team, or player.</p>
     <p>Type is Noto Sans, Noto Serif, and JetBrains Mono, bundled under their own licenses in assets/fonts.</p>
     <p>The score is generated in the game. There are no licensed recordings.</p>
+    <p>The night office, the brass cup, the club marks, and the desk icons were made for this edition.</p>
     <p>Edition ${GAME_VERSION}. Saves stay on this machine unless you export them.</p>
     <button type="button" class="btn-ghost" data-act="back-manual">Close</button>
   </div>`;
