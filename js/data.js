@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 1;
-export const GAME_VERSION = "1.0.0";
+export const GAME_VERSION = "1.1.0";
 export const MIN_SALARY = 0.74;
 export const LUXURY = 165;
 export const DEADLINE_WEEK = 10;
@@ -86,7 +86,11 @@ export const MANUAL = [
   },
   {
     title: "The draft and the farm",
-    body: "Three rounds, worst record picking first. A rebuild also receives a supplemental pick at the end of the first round. Prospects arrive raw. Development spending pushes young players toward their potential each winter; age catches the rest. Promote and demote freely as long as the active roster can still field a team.",
+    body: "Three rounds, worst record picking first. A rebuild also receives a supplemental pick at the end of the first round. Prospects arrive raw. Development spending pushes young players toward their potential each winter; age catches the rest. In camp you may name two farm players, 25 or younger, for the development slate. They get the extra reps, and the desk letter names who rose and who slipped. Promote and demote freely as long as the active roster can still field a team.",
+  },
+  {
+    title: "Reports and the inbox",
+    body: "Every player page carries a scouting report. Your own organization is exact. Other clubs stay fogged until scouting wears the error down. During the season the inbox can ask you to call a prospect up, to start a player who wants the card, or to claim a young player another club is letting go. A claim costs $0.40M and needs a farm spot. A note you ignore expires when the next series starts. The trophy case keeps the champions and the award history.",
   },
   {
     title: "Money",

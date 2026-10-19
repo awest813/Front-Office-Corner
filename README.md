@@ -29,7 +29,7 @@ Packaging and the Steamworks steps that require a partner account are in [steam/
 
 Camp, then fourteen series of four. Trades close after week ten. October is a division series, a league final, and the Continental Series. The winter is tenders, four weeks of free agency, and a three-round draft. A rebuild receives a supplemental pick at the end of round one.
 
-Grades run from 20 to 80. Your own roster is exact. Other clubs are scouted with fog unless you spend on analytics and scouting. Staff budgets lock on Opening Day. The luxury line is $165M.
+Grades run from 20 to 80. Your own roster is exact. Other clubs are scouted with fog unless you spend on analytics and scouting. Every player page carries a scouting report. Staff budgets lock on Opening Day. In camp you can name two young farm players for the development slate; they get the extra winter reps, and the desk letter says who rose. During the season the inbox can ask for a call-up, a lineup change, or a $0.40M claim. The luxury line is $165M. The trophy case keeps the champions and the award history.
 
 Job security is the loss condition during the season and at the year-end review. You can retire from the office menu.
 

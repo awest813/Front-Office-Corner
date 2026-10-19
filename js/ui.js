@@ -33,6 +33,7 @@ import {
   retireGm,
   serialize,
   setBlock,
+  setFocus,
   setLineup,
   setRotation,
   setStaff,
@@ -55,6 +56,7 @@ import {
   userTeamOf,
 } from "./career.js";
 import { confidenceLabel } from "./roster.js";
+import { playerReport, playerRole } from "./report.js";
 import { esc, fmtAvg, fmtEra, fmtIp, fmtMoney, fmtPct, fullName } from "./util.js";
 import { playClick, playConfirm, playLoss, playTrophy, playWeek, playWin, resumeAudio, syncMusic } from "./audio.js";
 
@@ -295,6 +297,9 @@ function viewDesk() {
   const inbox = career.inbox.filter((i) => !i.resolved).slice(0, 4);
   const inboxHtml = inbox.length ? inbox.map(inboxCard).join("") : `<p class="muted">The inbox is clear.</p>`;
   const digest = career.digest?.length > 1 ? `<div class="card"><h3>While the weeks ran</h3>${career.digest.slice(-8).map((d) => `<div class="goal"><span>Week ${d.week}</span><span>${esc(d.text)}</span></div>`).join("")}</div>` : "";
+  const focus = (career.focus || []).map((id) => career.players[id]).filter(Boolean);
+  const slate = career.staffLocked ? "" : `<section class="card"><h3>Development slate</h3>${focus.length ? focus.map((p) => `<div class="goal"><span>${playerButton(p)}</span><span>${esc(playerRole(p))}</span></div>`).join("") : "<p class=\"muted\">Name two farm players, 25 or under, from the ledger. They get the extra winter reps.</p>"}</section>`;
+  const growth = career.growth && (career.growth.rose.length || career.growth.fell.length) ? `<section class="card"><h3>Since last winter</h3>${career.growth.rose.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="good">${row.from} to ${row.to}</span></div>`).join("")}${career.growth.fell.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="bad">${row.from} to ${row.to}</span></div>`).join("")}</section>` : "";
   return `<div class="desk">
     <article class="paper">
       <div class="mast"><strong>${esc(paper.kicker || "The Corner Post")}</strong><span>${career.year}</span></div>
@@ -306,6 +311,8 @@ function viewDesk() {
       <section class="card"><h3>Owner's goals</h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style)}. ${esc(team.blurb)}</p></section>
       <section class="card"><h3>This series</h3>${next}</section>
       <section class="card"><h3>Inbox</h3>${inboxHtml}</section>
+      ${slate}
+      ${growth}
       ${digest}
     </div>
   </div>`;
@@ -314,6 +321,9 @@ function viewDesk() {
 function inboxCard(item) {
   const buttons = [];
   if (item.kind === "trade") buttons.push(`<button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="accept">Accept</button><button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="decline">Decline</button>`);
+  else if (item.kind === "callup") buttons.push(`<button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="accept">Call him up</button><button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="decline">Leave him down</button>`);
+  else if (item.kind === "playing") buttons.push(`<button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="accept">Start him</button><button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="decline">Sit him</button>`);
+  else if (item.kind === "claim") buttons.push(`<button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="accept">Claim</button><button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="decline">Pass</button>`);
   else if (item.kind === "camp") buttons.push(`<button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="a">${esc(career.players[item.aId]?.last || "A")}</button><button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="b">${esc(career.players[item.bId]?.last || "B")}</button>`);
   else if (item.kind === "owner") buttons.push(`<button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="accept">Do it</button><button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="decline">Refuse</button>`);
   else buttons.push(`<button type="button" class="btn-small" data-act="inbox" data-id="${item.id}" data-choice="file">File</button>`);
@@ -333,7 +343,7 @@ function viewRoster() {
     const line = p.isPitcher ? `${pit.w}-${pit.l}, ${fmtEra(pit.er, pit.outs)}` : `${fmtAvg(bat.h, bat.ab)} · ${bat.hr} HR`;
     return `<tr>
       <td>${esc(p.pos)}</td>
-      <td>${playerButton(p)}${p.injuredWeeks ? ` <span class="bad">IL ${p.injuredWeeks}w</span>` : ""}${p.onBlock ? ` <span class="muted">block</span>` : ""}</td>
+      <td>${playerButton(p)}${p.injuredWeeks ? ` <span class="bad">IL ${p.injuredWeeks}w</span>` : ""}${p.onBlock ? ` <span class="muted">block</span>` : ""}${(career.focus || []).includes(p.id) ? ` <span class="good">slate</span>` : ""}</td>
       <td class="r num">${p.age}</td>
       <td class="r num">${shownOverall(career, p)}</td>
       <td class="tools">${toolsFor(p).map(([, key]) => grade(career, p, key)).join(" ")}</td>
@@ -387,9 +397,13 @@ function viewPlayer(p) {
     <tr><td>Career</td><td class="r num">${cp.w}-${cp.l}</td><td class="r num">${fmtEra(cp.er, cp.outs)}</td><td class="r num">${fmtIp(cp.outs)}</td><td class="r num">${cp.k}</td><td class="r num">${cp.bb}</td><td class="r num">${cp.sv}</td></tr>
   </tbody></table>`;
   const ask = marketSalary(p);
+  const onSlate = (career.focus || []).includes(p.id);
+  const canFocus = own && !career.staffLocked && team.farm.includes(p.id) && p.age <= 25;
+  const focusButton = canFocus ? `<button type="button" class="btn-small" data-act="focus" data-id="${p.id}">${onSlate ? "Take off the slate" : "Put on the development slate"}</button>` : "";
   const actions = own ? `<div class="card"><h3>Desk</h3>
       <p>Market ask about ${fmtMoney(ask)}. Service ${p.service}. ${esc(p.personality)}.</p>
       <div class="row-actions">
+        ${focusButton}
         <button type="button" class="btn-small" data-act="block" data-id="${p.id}">${p.onBlock ? "Pull off the block" : "Put on the block"}</button>
         ${team.farm.includes(p.id) ? `<button type="button" class="btn-small" data-act="promote" data-id="${p.id}">Call up</button>` : `<button type="button" class="btn-small" data-act="demote" data-id="${p.id}">Send down</button>`}
         <button type="button" class="btn-danger btn-small" data-act="release-ask" data-id="${p.id}">Release</button>
@@ -404,12 +418,13 @@ function viewPlayer(p) {
     <section>
       <button type="button" class="btn-small" data-act="nav" data-view="roster">Back to the ledger</button>
       <h3 class="section-title">${esc(fullName(p))}</h3>
-      <p class="muted">${esc(p.pos)} · ${p.bats}/${p.throws} · Age ${p.age} · OVR ${shownOverall(career, p)} · POT ${displayGrade(p, "potential", career.year, career.userTeamId).value}</p>
+      <p class="muted">${esc(p.pos)} · ${esc(playerRole(p))} · ${p.bats}/${p.throws} · Age ${p.age} · OVR ${shownOverall(career, p)} · POT ${displayGrade(p, "potential", career.year, career.userTeamId).value}</p>
       <div class="grades">${pills}</div>
       ${p.isPitcher ? pitching : batting}
       ${!p.isPitcher && p.season.pit.outs ? pitching : ""}
     </section>
     <section class="stack">
+      <div class="card"><h3>Scouting report</h3><p class="report">${esc(playerReport(p, noise))}</p></div>
       <div class="card"><h3>Contract</h3><p>${fmtMoney(p.contract?.salary || 0)} for ${p.contract?.years || 0} year(s), ${esc(p.contract?.type || "none")}.</p><p class="muted">Morale ${p.morale}. Durability ${p.durability}.</p></div>
       ${actions}
     </section>
@@ -429,7 +444,9 @@ function linescore(box) {
     return `<tr><td>${esc(team.name)}</td>${cells}<td class="r num"><b>${runs}</b></td><td class="r num">${hits}</td><td class="r num">${err}</td></tr>`;
   };
   const notes = (box.notes || []).slice(0, 8).map((n) => `<li>${esc(n)}</li>`).join("");
-  return `<div class="linescore"><table class="grid"><thead><tr><th></th>${head}<th class="r">R</th><th class="r">H</th><th class="r">E</th></tr></thead><tbody>${row(box.awayId, box.awayInnings, box.awayRuns, box.awayHits, box.awayErrors)}${row(box.homeId, box.homeInnings, box.homeRuns, box.homeHits, box.homeErrors)}</tbody></table>${notes ? `<ul>${notes}</ul>` : ""}</div>`;
+  const arm = (id) => (id && career.players[id] ? esc(fullName(career.players[id])) : "");
+  const decisions = [box.wp ? `W ${arm(box.wp)}` : "", box.lp ? `L ${arm(box.lp)}` : "", box.sv ? `S ${arm(box.sv)}` : ""].filter(Boolean).join(" · ");
+  return `<div class="linescore"><table class="grid"><thead><tr><th></th>${head}<th class="r">R</th><th class="r">H</th><th class="r">E</th></tr></thead><tbody>${row(box.awayId, box.awayInnings, box.awayRuns, box.awayHits, box.awayErrors)}${row(box.homeId, box.homeInnings, box.homeRuns, box.homeHits, box.homeErrors)}</tbody></table>${decisions ? `<p class="muted">${decisions}</p>` : ""}${notes ? `<ul>${notes}</ul>` : ""}</div>`;
 }
 
 function viewScores() {
@@ -608,7 +625,11 @@ function viewTrophies() {
     return `<div class="goal"><span>${hidden ? "A quiet trophy" : esc(a.name)}</span><span class="${got ? "good" : "muted"}">${got ? `${got.year}` : hidden ? "Hidden" : esc(a.desc)}</span></div>`;
   }).join("");
   const champs = career.champions.map((c) => `<div class="goal"><span>${c.year}</span><span>${esc(teamLabel(teamOf(career, c.teamId)))}</span></div>`).join("");
-  return `<div class="split"><section class="card"><h3>Trophy case</h3>${rows}</section><section class="card"><h3>Continental champions</h3>${champs || "<p class='muted'>No banners yet.</p>"}<h3>Your seasons</h3>${career.seasons.map((s) => `<div class="goal"><span>${s.year} ${s.w}-${s.l}</span><span>${esc(s.finish)} · ${fmtMoney(s.profit)}</span></div>`).join("") || "<p class='muted'>The log is empty.</p>"}</section></div>`;
+  const awards = (career.awardsLog || []).slice().reverse().map((row) => {
+    const a = row.awards || {};
+    return `<div class="goal"><span>${row.year}</span><span>MVP ${esc(a.mvp?.name || "—")} · Pitching ${esc(a.cy?.name || "—")} · Rookie ${esc(a.roy?.name || "—")}</span></div>`;
+  }).join("");
+  return `<div class="split"><section class="card"><h3>Trophy case</h3>${rows}</section><section class="stack"><div class="card"><h3>Continental champions</h3>${champs || "<p class='muted'>No banners yet.</p>"}<h3>Your seasons</h3>${career.seasons.map((s) => `<div class="goal"><span>${s.year} ${s.w}-${s.l}</span><span>${esc(s.finish)} · ${fmtMoney(s.profit)}</span></div>`).join("") || "<p class='muted'>The log is empty.</p>"}</div><div class="card"><h3>Award history</h3>${awards || "<p class='muted'>The record book opens after the first year.</p>"}</div></section></div>`;
 }
 
 function viewRecap() {
@@ -732,7 +753,7 @@ function tutorialHtml() {
   const steps = [
     "This is the corner office. The paper, the goals, and the owner's patience all live on this desk.",
     "Sim a day or a series from the bar along the bottom. The season is 14 series of four.",
-    "Set the lineup, shop the wire, and pay the scouts if you want the fog to lift.",
+    "Open a player for the scouting report. In camp, two young farm hands can take the extra winter reps.",
     "Security is the job. The owner reviews you when the year ends. At zero, the chair is gone.",
   ];
   const last = ui.tutorial >= steps.length - 1;
@@ -891,6 +912,7 @@ function onClick(e) {
   }
   if (act === "player") { ui.playerId = el.dataset.id; ui.view = "roster"; playClick(); render(); return; }
   if (act === "inbox") go(() => respondInbox(career, el.dataset.id, el.dataset.choice));
+  if (act === "focus") go(() => setFocus(career, el.dataset.id));
   if (act === "tender") { setTender(career, el.dataset.id, el.dataset.yes === "1"); playClick(); render(); return; }
   if (act === "bid") {
     const years = Number(document.getElementById(`y-${el.dataset.id}`)?.value);

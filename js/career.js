@@ -471,6 +471,10 @@ function beginYear(state, rng, advanced) {
   state.meta.sellout = false;
   state.phase = "preseason";
   state.staffLocked = false;
+  state.focus = (state.focus || []).filter((id) => {
+    const p = state.players[id];
+    return p && p.teamId === state.userTeamId && !p.retired && p.age <= 25;
+  });
   state.inbox = [];
   const team = userTeam(state);
   writePaper(
@@ -566,6 +570,8 @@ export function createCareer(opts = {}) {
     nextId: idRef.n,
     nextNote: 1,
     freeAgents: [],
+    focus: [],
+    growth: null,
     phase: "preseason",
     week: 0,
     day: 0,
@@ -741,7 +747,15 @@ function writeWeekPaper(state, rec) {
   else if (box?.noHitter) headline = `A no-hitter on the books`;
   else if (box?.cycle) headline = `${state.players[box.cycle]?.last || "A batter"} hits for the cycle`;
   const leader = [...state.teams].filter((t) => t.league === team.league).sort(compareTeams)[0];
-  const body = `${team.city} went ${rec.w}-${rec.l} against ${opp} and sits ${team.wins}-${team.losses}. ${leader.city} leads the ${leader.league} League at ${leader.wins}-${leader.losses}.`;
+  let division = "";
+  if (rec.series) {
+    const home = teamById(state, rec.series.home);
+    const away = teamById(state, rec.series.away);
+    if (home && away && home.division === away.division && home.league === away.league) {
+      division = ` It is a ${home.division} argument, and the town will remember the score.`;
+    }
+  }
+  const body = `${team.city} went ${rec.w}-${rec.l} against ${opp} and sits ${team.wins}-${team.losses}. ${leader.city} leads the ${leader.league} League at ${leader.wins}-${leader.losses}.${division}`;
   writePaper(state, headline, `${team.owner.name} will read this before you do.`, body);
 }
 
@@ -774,9 +788,12 @@ function tradeEdge(state, theirId, sendIds, recvIds, cashSend, cashRecv) {
 
 function refillInbox(state, rng) {
   state.inbox.forEach((item) => {
-    if (!item.resolved && (item.kind === "trade" || item.kind === "owner")) item.resolved = true;
+    if (!item.resolved && ["trade", "owner", "callup", "playing", "claim"].includes(item.kind)) item.resolved = true;
   });
-  if (state.week >= DEADLINE_WEEK) return;
+  if (state.week >= DEADLINE_WEEK) {
+    deskNotes(state, rng);
+    return;
+  }
   if (rng.chance(0.62)) {
     const offer = craftOffer(state, rng);
     if (offer) {
@@ -813,6 +830,78 @@ function refillInbox(state, rng) {
       body: `${team.owner.name} has started taking the calls you used to take. Win a series.`,
     });
   }
+  deskNotes(state, rng);
+}
+
+function deskNotes(state, rng) {
+  const team = userTeam(state);
+  if (rng.chance(0.45)) maybeCallup(state, rng, team);
+  if (rng.chance(0.34)) maybePlayingTime(state, rng, team);
+  if (rng.chance(0.3)) maybeClaim(state, rng, team);
+}
+
+function maybeCallup(state, rng, team) {
+  const farm = team.farm.map((id) => state.players[id]).filter((p) => p && p.age <= 24 && p.potential >= 58 && !p.injuredWeeks);
+  if (!farm.length) return;
+  const kid = farm.slice().sort((a, b) => overall(b) - overall(a))[0];
+  const peers = team.active.map((id) => state.players[id]).filter((p) => p && p.isPitcher === kid.isPitcher && !p.injuredWeeks);
+  const worst = peers.slice().sort((a, b) => overall(a) - overall(b))[0];
+  if (!worst || overall(kid) < overall(worst) - 6) return;
+  if (rng.chance(0.35) && overall(kid) < overall(worst)) return;
+  pushInbox(state, {
+    kind: "callup",
+    title: `${kid.last} is knocking`,
+    body: `${fullName(kid)} is on the staff's card next to ${fullName(worst)}. Call him up or leave him on the farm.`,
+    playerId: kid.id,
+    replaceId: worst.id,
+  });
+}
+
+function maybePlayingTime(state, rng, team) {
+  const starters = new Set(team.lineup.map((s) => s.id));
+  const bench = team.active
+    .map((id) => state.players[id])
+    .filter((p) => p && !p.isPitcher && !starters.has(p.id) && !p.injuredWeeks && (p.personality === "volatile" || p.personality === "loyal"));
+  if (!bench.length) return;
+  const p = rng.pick(bench);
+  for (let i = 0; i < team.lineup.length; i += 1) {
+    const slot = team.lineup[i];
+    if (!canPlay(p, slot.pos)) continue;
+    const cur = state.players[slot.id];
+    if (!cur || overall(p) + 12 < overall(cur)) continue;
+    pushInbox(state, {
+      kind: "playing",
+      title: `${p.last} wants the card`,
+      body: `${fullName(p)} wants the ${slot.pos} spot ahead of ${cur.last}. He will remember the answer.`,
+      playerId: p.id,
+      slot: i,
+    });
+    return;
+  }
+}
+
+function maybeClaim(state, rng, team) {
+  if (team.farm.length >= FARM_MAX) return;
+  const pool = [];
+  for (const them of state.teams) {
+    if (them.id === team.id) continue;
+    for (const id of them.farm) {
+      const p = state.players[id];
+      if (!p || p.injuredWeeks || p.age > 23 || p.potential < 62 || overall(p) > 54) continue;
+      pool.push(p);
+    }
+  }
+  if (!pool.length) return;
+  pool.sort((a, b) => b.potential - a.potential);
+  const p = rng.chance(0.5) ? pool[0] : rng.pick(pool.slice(0, Math.min(8, pool.length)));
+  const them = teamById(state, p.teamId);
+  pushInbox(state, {
+    kind: "claim",
+    title: `${them.city} might lose ${p.last}`,
+    body: `${fullName(p)}, ${p.age}, is a ${p.pos} another club can live without. The claim fee is ${fmtMoney(0.4)}, and the farm has a bed.`,
+    playerId: p.id,
+    fee: 0.4,
+  });
 }
 
 function craftOffer(state, rng) {
@@ -1537,14 +1626,27 @@ export function shownOverall(state, p) {
 
 function developPlayer(state, rng, p) {
   const own = p.teamId === state.userTeamId;
+  const focused = own && (state.focus || []).includes(p.id);
   const dev = own ? state.staff.development : 4;
-  const rate = 0.1 + dev * 0.03;
+  const rate = (0.1 + dev * 0.03) * (focused ? 1.9 : 1);
   const tools = p.isPitcher ? ["stuff", "control", "movement", "stamina"] : ["contact", "power", "eye", "speed", "defense", "arm"];
   if (p.age <= 25) {
     for (const key of tools) {
       if (p[key] < p.potential) {
         p[key] = clamp(Math.round(p[key] + rng.float(0, rate * Math.max(1, p.potential - p[key]) / 5)), 20, 80);
       }
+    }
+    if (focused) {
+      let key = tools[0];
+      let gap = -1;
+      for (const tool of tools) {
+        const room = (p.potential || 0) - p[tool];
+        if (room > gap) {
+          gap = room;
+          key = tool;
+        }
+      }
+      if (gap > 0) p[key] = clamp(p[key] + 1, 20, 80);
     }
   } else if (p.age >= 32) {
     for (const key of ["speed", "stamina", "stuff", "power"]) {
@@ -1572,10 +1674,41 @@ function retirePlayer(state, p) {
   p.teamId = null;
 }
 
+function noteGrowth(state, before) {
+  const rose = [];
+  const fell = [];
+  for (const p of rosterPlayers(state, userTeam(state))) {
+    if (before[p.id] == null) continue;
+    const now = overall(p);
+    const delta = now - before[p.id];
+    if (delta >= 2) rose.push({ id: p.id, name: fullName(p), from: before[p.id], to: now });
+    else if (delta <= -2) fell.push({ id: p.id, name: fullName(p), from: before[p.id], to: now });
+  }
+  rose.sort((a, b) => (b.to - b.from) - (a.to - a.from));
+  fell.sort((a, b) => (a.to - a.from) - (b.to - b.from));
+  state.growth = { year: state.year, rose: rose.slice(0, 5), fell: fell.slice(0, 4) };
+}
+
+function appendGrowth(state) {
+  const g = state.growth;
+  if (!g || !state.paper) return;
+  const rose = g.rose.slice(0, 3).map((row) => `${row.name} (${row.from} to ${row.to})`).join(", ");
+  const fell = g.fell.slice(0, 2).map((row) => row.name).join(", ");
+  const slate = (state.focus || []).map((id) => state.players[id]).filter(Boolean).map((p) => p.last);
+  const bits = [];
+  if (rose) bits.push(`${rose} took a step over the winter.`);
+  if (fell) bits.push(`${fell} lost a step.`);
+  if (slate.length) bits.push(`The development slate is ${slate.join(" and ")}.`);
+  if (!bits.length) bits.push("The winter was quiet. Nobody on the roster jumped a grade.");
+  state.paper.body = `${state.paper.body} ${bits.join(" ")}`;
+}
+
 export function openCamp(state) {
   if (state.phase !== "camp") return { ok: false, message: "Finish the draft before camp." };
   if (!employed(state)) return { ok: false, message: "The career is over." };
   return mutate(state, (rng) => {
+    const before = {};
+    for (const p of rosterPlayers(state, userTeam(state))) before[p.id] = overall(p);
     for (const p of Object.values(state.players)) {
       if (p.retired) continue;
       if (!p.teamId && !state.freeAgents.includes(p.id)) continue;
@@ -1590,6 +1723,8 @@ export function openCamp(state) {
     state.draft = null;
     ensureRosters(state, rng);
     beginYear(state, rng, true);
+    noteGrowth(state, before);
+    appendGrowth(state);
     state.flash = `${state.year} camp is open in ${userTeam(state).city}.`;
     return { ok: true, message: state.flash };
   });
@@ -1733,6 +1868,16 @@ export function respondInbox(state, inboxId, choice) {
     state.flash = `${state.players[id].last} gets the ball.`;
     return { ok: true, message: state.flash };
   }
+  if (item.kind === "callup") return answerCallup(state, item, choice);
+  if (item.kind === "playing") return answerPlaying(state, item, choice);
+  if (item.kind === "claim") {
+    if (choice !== "accept") {
+      item.resolved = true;
+      state.flash = "You pass on the claim.";
+      return { ok: true, message: state.flash };
+    }
+    return mutate(state, (rng) => answerClaim(state, rng, item));
+  }
   if (item.kind === "owner") {
     if (choice === "accept") {
       const team = userTeam(state);
@@ -1776,6 +1921,101 @@ export function respondInbox(state, inboxId, choice) {
   }
   item.resolved = true;
   return { ok: true, message: "Filed." };
+}
+
+function answerCallup(state, item, choice) {
+  const team = userTeam(state);
+  const p = state.players[item.playerId];
+  item.resolved = true;
+  if (!p || p.teamId !== team.id || !team.farm.includes(p.id)) {
+    return { ok: false, message: "He is no longer on the farm." };
+  }
+  if (choice !== "accept") {
+    p.morale = clamp(p.morale - 7, 20, 95);
+    state.flash = `${p.last} heard the no.`;
+    return { ok: true, message: state.flash };
+  }
+  if (team.active.length >= ACTIVE_MAX) {
+    const repl = state.players[item.replaceId];
+    let sent = repl && team.active.includes(repl.id) ? demote(state, repl.id) : { ok: false };
+    if (!sent.ok) {
+      const spare = team.active
+        .map((id) => state.players[id])
+        .filter((q) => q && q.isPitcher === p.isPitcher && !team.lineup.some((s) => s.id === q.id) && !team.rotation.includes(q.id))
+        .sort((a, b) => overall(a) - overall(b))[0];
+      sent = spare ? demote(state, spare.id) : { ok: false };
+    }
+    if (!sent.ok) return { ok: false, message: "The active roster has no open chair." };
+  }
+  const up = promote(state, p.id);
+  if (!up.ok) return up;
+  p.morale = clamp(p.morale + 6, 20, 95);
+  pushNews(state, {
+    kind: "roster",
+    title: `${p.last} is called up`,
+    body: `${fullName(p)} joins the active roster.`,
+  });
+  state.flash = `${fullName(p)} is up.`;
+  return { ok: true, message: state.flash };
+}
+
+function answerPlaying(state, item, choice) {
+  const team = userTeam(state);
+  const p = state.players[item.playerId];
+  item.resolved = true;
+  if (!p || !team.active.includes(p.id)) return { ok: false, message: "He is not available." };
+  if (choice !== "accept") {
+    p.morale = clamp(p.morale - 6, 20, 95);
+    state.flash = `${p.last} will sit, and he knows it.`;
+    return { ok: true, message: state.flash };
+  }
+  if (p.injuredWeeks) return { ok: false, message: `${p.last} is hurt.` };
+  const slot = team.lineup[item.slot];
+  if (!slot) return { ok: false, message: "The card has moved." };
+  const oldId = slot.id;
+  const other = team.lineup.find((s) => s.id === p.id);
+  if (other) other.id = oldId;
+  slot.id = p.id;
+  if (!lineupValid(state, team)) {
+    slot.id = oldId;
+    if (other) other.id = p.id;
+    return { ok: false, message: "The staff cannot make that card legal." };
+  }
+  team.lineupCustom = true;
+  p.morale = clamp(p.morale + 7, 20, 95);
+  state.flash = `${p.last} is in the lineup.`;
+  return { ok: true, message: state.flash };
+}
+
+function answerClaim(state, rng, item) {
+  const team = userTeam(state);
+  const p = state.players[item.playerId];
+  item.resolved = true;
+  if (!p || !p.teamId || p.teamId === team.id) return { ok: false, message: "That player is no longer available." };
+  if (team.farm.length >= FARM_MAX && team.active.length >= ACTIVE_MAX) {
+    return { ok: false, message: "There is no roster spot for a claim." };
+  }
+  const them = teamById(state, p.teamId);
+  for (const club of state.teams) {
+    club.active = club.active.filter((id) => id !== p.id);
+    club.farm = club.farm.filter((id) => id !== p.id);
+    club.lineup = club.lineup.filter((s) => s.id !== p.id);
+    club.rotation = club.rotation.filter((id) => id !== p.id);
+  }
+  p.teamId = team.id;
+  p.scoutNoise = 0;
+  p.onBlock = false;
+  if (team.farm.length < FARM_MAX) team.farm.push(p.id);
+  else team.active.push(p.id);
+  state.books.cashOut += Number(item.fee) || 0.4;
+  ensureRosters(state, rng);
+  pushNews(state, {
+    kind: "trade",
+    title: `${team.city} claims ${p.last}`,
+    body: `${fullName(p)} comes over from ${them?.city || "another club"} on a ${fmtMoney(Number(item.fee) || 0.4)} claim.`,
+  });
+  state.flash = `${p.last} is yours.`;
+  return { ok: true, message: state.flash };
 }
 
 export function setLineup(state, entries) {
@@ -1915,6 +2155,27 @@ export function offerExtension(state, playerId, years, salary) {
   pushNews(state, { kind: "sign", title: `${p.last} extends`, body: `${fullName(p)} agrees to ${y} years at ${fmtMoney(s)}.` });
   state.flash = `${p.last} signs the extension.`;
   return { ok: true, message: state.flash, ask: round1(ask) };
+}
+
+export function setFocus(state, playerId) {
+  if (state.staffLocked || !["preseason", "camp"].includes(state.phase)) {
+    return { ok: false, message: "The development slate locks on Opening Day." };
+  }
+  const p = state.players[playerId];
+  const team = userTeam(state);
+  if (!p || p.teamId !== team.id) return { ok: false, message: "That player is not in the organization." };
+  if (!team.farm.includes(p.id)) return { ok: false, message: "The slate is for players still on the farm." };
+  if (p.age > 25) return { ok: false, message: "The extra reps are for players 25 and under." };
+  state.focus = state.focus || [];
+  if (state.focus.includes(p.id)) {
+    state.focus = state.focus.filter((id) => id !== p.id);
+    state.flash = `${p.last} is off the slate.`;
+    return { ok: true, message: state.flash };
+  }
+  if (state.focus.length >= 2) return { ok: false, message: "The slate holds two names. Take one off first." };
+  state.focus.push(p.id);
+  state.flash = `${fullName(p)} will get the extra reps.`;
+  return { ok: true, message: state.flash };
 }
 
 export function setStaff(state, patch) {
@@ -2125,6 +2386,9 @@ export function hydrate(raw) {
   if (!state || state.version !== SAVE_VERSION) {
     throw new Error("This save is from a different edition of Front Office Corner.");
   }
+  if (!Array.isArray(state.focus)) state.focus = [];
+  if (!Array.isArray(state.awardsLog)) state.awardsLog = [];
+  if (state.growth == null) state.growth = null;
   return state;
 }
 
