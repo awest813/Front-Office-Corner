@@ -34,6 +34,9 @@ import {
   serialize,
   setBlock,
   setFocus,
+  setPlan,
+  PLANS,
+  weekAgenda,
   setLineup,
   setRotation,
   setStaff,
@@ -191,9 +194,48 @@ function roster(state, team) {
   return [...team.active, ...team.farm].map((id) => state.players[id]).filter(Boolean);
 }
 
+function gradeBand(value) {
+  if (value >= 75) return "star";
+  if (value >= 65) return "plus";
+  if (value >= 58) return "above";
+  if (value >= 48) return "avg";
+  if (value >= 40) return "fringe";
+  return "poor";
+}
+
 function grade(state, p, key) {
   const g = displayGrade(p, key, state.year, state.userTeamId);
-  return `<span class="grade${g.exact ? "" : " fog"}" title="${gradeLabel(g.value)}">${g.value}</span>`;
+  const band = g.exact ? gradeBand(g.value) : "fog";
+  return `<span class="grade ${band}" title="${gradeLabel(g.value)}">${g.value}</span>`;
+}
+
+function clubRole(p) {
+  if (!p) return "";
+  if (p.injuredWeeks) return `Injured ${p.injuredWeeks}w`;
+  if (!p.teamId) return "Free agent";
+  const team = teamOf(career, p.teamId);
+  if (!team) return "";
+  if (team.farm.includes(p.id)) return "Farm";
+  if (!p.isPitcher) {
+    const slot = team.lineup.find((s) => s.id === p.id);
+    if (slot) return `Starting ${slot.pos}`;
+    return "Bench";
+  }
+  const spot = team.rotation.indexOf(p.id);
+  if (spot === 0) return "Ace";
+  if (spot > 0) return `Game ${spot + 1}`;
+  return p.role === "RP" ? "Bullpen" : "Starter";
+}
+
+function dealLine(p) {
+  const years = p.contract?.years || 0;
+  const kind = {
+    prearb: "club control",
+    arb: "arbitration",
+    fa: "open-market deal",
+    extension: "extension",
+  }[p.contract?.type] || p.contract?.type || "no deal";
+  return `${fmtMoney(p.contract?.salary || 0)} for ${years} ${years === 1 ? "year" : "years"}, ${kind}.`;
 }
 
 function toolsFor(p) {
@@ -243,7 +285,8 @@ function prepareDraft() {
 
 function shell(body) {
   const team = userTeamOf(career);
-  const nav = VIEWS.map(([id, label]) => `<button type="button" data-act="nav" data-view="${id}" class="${ui.view === id ? "on" : ""}">${label}</button>`).join("");
+  const openDesk = weekAgenda(career).filter((item) => item.tone !== "done").length;
+  const nav = VIEWS.map(([id, label]) => `<button type="button" data-act="nav" data-view="${id}" class="${ui.view === id ? "on" : ""}">${label}${id === "desk" && openDesk ? `<span class="badge">${openDesk}</span>` : ""}</button>`).join("");
   const security = career.gm.security;
   return `<div class="shell">
     <header class="topbar">
@@ -294,12 +337,18 @@ function viewDesk() {
     const done = series.results.filter(Boolean).length;
     next = `<strong>${esc(teamLabel(opp))}</strong><div class="muted">${where} · ${esc(opp.parkName)} · ${done} of 4 played</div>`;
   }
-  const inbox = career.inbox.filter((i) => !i.resolved).slice(0, 4);
+  const inbox = career.inbox.filter((i) => !i.resolved);
   const inboxHtml = inbox.length ? inbox.map(inboxCard).join("") : `<p class="muted">The inbox is clear.</p>`;
   const digest = career.digest?.length > 1 ? `<div class="card"><h3>While the weeks ran</h3>${career.digest.slice(-8).map((d) => `<div class="goal"><span>Week ${d.week}</span><span>${esc(d.text)}</span></div>`).join("")}</div>` : "";
   const focus = (career.focus || []).map((id) => career.players[id]).filter(Boolean);
   const slate = career.staffLocked ? "" : `<section class="card"><h3>Development slate</h3>${focus.length ? focus.map((p) => `<div class="goal"><span>${playerButton(p)}</span><span>${esc(playerRole(p))}</span></div>`).join("") : "<p class=\"muted\">Name two farm players, 25 or under, from the ledger. They get the extra winter reps.</p>"}</section>`;
   const growth = career.growth && (career.growth.rose.length || career.growth.fell.length) ? `<section class="card"><h3>Since last winter</h3>${career.growth.rose.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="good">${row.from} to ${row.to}</span></div>`).join("")}${career.growth.fell.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="bad">${row.from} to ${row.to}</span></div>`).join("")}</section>` : "";
+  const agenda = weekAgenda(career).map((item) => {
+    const cls = `agenda ${item.tone}`;
+    if (!item.view || item.view === ui.view) return `<div class="${cls}"><span>${esc(item.text)}</span></div>`;
+    return `<button type="button" class="${cls}" data-act="nav" data-view="${item.view}"><span>${esc(item.text)}</span></button>`;
+  }).join("");
+  const plan = planCard();
   return `<div class="desk">
     <article class="paper">
       <div class="mast"><strong>${esc(paper.kicker || "The Corner Post")}</strong><span>${career.year}</span></div>
@@ -308,7 +357,9 @@ function viewDesk() {
       <p>${esc(paper.body || "")}</p>
     </article>
     <div class="stack">
-      <section class="card"><h3>Owner's goals</h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style)}. ${esc(team.blurb)}</p></section>
+      <section class="card"><h3>This week</h3>${agenda}</section>
+      ${plan}
+      <section class="card"><h3>Owner's goals</h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style.replace("-", " "))}. ${esc(team.blurb)}</p></section>
       <section class="card"><h3>This series</h3>${next}</section>
       <section class="card"><h3>Inbox</h3>${inboxHtml}</section>
       ${slate}
@@ -316,6 +367,18 @@ function viewDesk() {
       ${digest}
     </div>
   </div>`;
+}
+
+function planCard() {
+  if (career.phase !== "season") return "";
+  const locked = career.day > 0;
+  const current = career.plan && career.plan.week === career.week ? career.plan.focus : "";
+  const named = PLANS.find((plan) => plan.id === current);
+  const buttons = PLANS.map((plan) => `<button type="button" class="choice ${current === plan.id ? "on" : ""}" data-act="plan" data-id="${plan.id}" ${locked ? "disabled" : ""}><strong>${esc(plan.title)}</strong><span>${esc(plan.text)}</span></button>`).join("");
+  const note = named
+    ? (locked ? `${named.title} is locked until the next series.` : `This series: ${named.title}.`)
+    : (locked ? "No plan this series. The next one is still open." : "It lasts four games, then you name another.");
+  return `<section class="card"><h3>Series plan</h3><div class="plan-grid">${buttons}</div><p class="muted">${esc(note)}</p></section>`;
 }
 
 function inboxCard(item) {
@@ -340,12 +403,13 @@ function viewRoster() {
   const rows = (ids, farm) => ids.map((id) => career.players[id]).filter(Boolean).map((p) => {
     const bat = p.season.bat;
     const pit = p.season.pit;
+    const ovr = shownOverall(career, p);
     const line = p.isPitcher ? `${pit.w}-${pit.l}, ${fmtEra(pit.er, pit.outs)}` : `${fmtAvg(bat.h, bat.ab)} · ${bat.hr} HR`;
     return `<tr>
       <td>${esc(p.pos)}</td>
       <td>${playerButton(p)}${p.injuredWeeks ? ` <span class="bad">IL ${p.injuredWeeks}w</span>` : ""}${p.onBlock ? ` <span class="muted">block</span>` : ""}${(career.focus || []).includes(p.id) ? ` <span class="good">slate</span>` : ""}</td>
       <td class="r num">${p.age}</td>
-      <td class="r num">${shownOverall(career, p)}</td>
+      <td class="r"><span class="grade ${gradeBand(ovr)}">${ovr}</span></td>
       <td class="tools">${toolsFor(p).map(([, key]) => grade(career, p, key)).join(" ")}</td>
       <td class="r num">${line}</td>
       <td class="r num">${fmtMoney(p.contract?.salary || 0)} / ${p.contract?.years || 0}y</td>
@@ -382,7 +446,8 @@ function viewPlayer(p) {
   const noise = own ? 0 : (p.scoutNoise || 0);
   const pills = toolsFor(p).map(([label, key]) => {
     const g = displayGrade(p, key, career.year, career.userTeamId);
-    return `<span class="pill"><small>${label}</small><b>${g.value}</b><small>${gradeLabel(g.value)}</small></span>`;
+    const band = g.exact ? gradeBand(g.value) : "fog";
+    return `<span class="pill ${band}"><small>${label}</small><b>${g.value}</b><small>${gradeLabel(g.value)}</small></span>`;
   }).join("");
   const b = p.season.bat;
   const c = p.career.bat;
@@ -401,7 +466,7 @@ function viewPlayer(p) {
   const canFocus = own && !career.staffLocked && team.farm.includes(p.id) && p.age <= 25;
   const focusButton = canFocus ? `<button type="button" class="btn-small" data-act="focus" data-id="${p.id}">${onSlate ? "Take off the slate" : "Put on the development slate"}</button>` : "";
   const actions = own ? `<div class="card"><h3>Desk</h3>
-      <p>Market ask about ${fmtMoney(ask)}. Service ${p.service}. ${esc(p.personality)}.</p>
+      <p>Market ask about ${fmtMoney(ask)}. Service ${p.service}. ${esc(p.personality.charAt(0).toUpperCase() + p.personality.slice(1))}.</p>
       <div class="row-actions">
         ${focusButton}
         <button type="button" class="btn-small" data-act="block" data-id="${p.id}">${p.onBlock ? "Pull off the block" : "Put on the block"}</button>
@@ -414,18 +479,21 @@ function viewPlayer(p) {
         <button type="submit" class="btn-small">Offer extension</button>
       </form>
     </div>` : `<div class="card"><p class="muted">Scouting confidence: ${confidenceLabel(noise)}. ${noise < 1.5 ? "The report is complete." : "Grades are estimates."}</p></div>`;
+  const ovr = shownOverall(career, p);
+  const exact = own || (p.scoutNoise ?? 10) < 1.5;
+  const pot = displayGrade(p, "potential", career.year, career.userTeamId);
   return `<div class="dossier">
     <section>
       <button type="button" class="btn-small" data-act="nav" data-view="roster">Back to the ledger</button>
       <h3 class="section-title">${esc(fullName(p))}</h3>
-      <p class="muted">${esc(p.pos)} · ${esc(playerRole(p))} · ${p.bats}/${p.throws} · Age ${p.age} · OVR ${shownOverall(career, p)} · POT ${displayGrade(p, "potential", career.year, career.userTeamId).value}</p>
+      <p class="muted">${esc(p.pos)} · ${esc(playerRole(p))} · ${esc(clubRole(p))} · ${p.bats}/${p.throws} · Age ${p.age} · OVR <span class="grade ${exact ? gradeBand(ovr) : "fog"}">${ovr}</span> · POT <span class="grade ${pot.exact ? gradeBand(pot.value) : "fog"}">${pot.value}</span></p>
       <div class="grades">${pills}</div>
       ${p.isPitcher ? pitching : batting}
       ${!p.isPitcher && p.season.pit.outs ? pitching : ""}
     </section>
     <section class="stack">
       <div class="card"><h3>Scouting report</h3><p class="report">${esc(playerReport(p, noise))}</p></div>
-      <div class="card"><h3>Contract</h3><p>${fmtMoney(p.contract?.salary || 0)} for ${p.contract?.years || 0} year(s), ${esc(p.contract?.type || "none")}.</p><p class="muted">Morale ${p.morale}. Durability ${p.durability}.</p></div>
+      <div class="card"><h3>Contract</h3><p>${dealLine(p)}</p><p class="muted">Morale ${p.morale}. Durability ${p.durability}.</p></div>
       ${actions}
     </section>
   </div>`;
@@ -913,6 +981,7 @@ function onClick(e) {
   if (act === "player") { ui.playerId = el.dataset.id; ui.view = "roster"; playClick(); render(); return; }
   if (act === "inbox") go(() => respondInbox(career, el.dataset.id, el.dataset.choice));
   if (act === "focus") go(() => setFocus(career, el.dataset.id));
+  if (act === "plan") go(() => setPlan(career, el.dataset.id));
   if (act === "tender") { setTender(career, el.dataset.id, el.dataset.yes === "1"); playClick(); render(); return; }
   if (act === "bid") {
     const years = Number(document.getElementById(`y-${el.dataset.id}`)?.value);

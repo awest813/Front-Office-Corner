@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 1;
-export const GAME_VERSION = "1.1.0";
+export const GAME_VERSION = "1.2.0";
 export const MIN_SALARY = 0.74;
 export const LUXURY = 165;
 export const DEADLINE_WEEK = 10;
@@ -70,11 +70,11 @@ export const MANUAL = [
   },
   {
     title: "The season",
-    body: "Each club plays 56 games: 14 series of four. Division rivals meet twice, everyone else in the league once. Sim a day, a series, or the rest of the regular season. The last four weeks are after the trade deadline. When the schedule ends, four clubs in each league — three division winners and one wild card — play a best-of-five series, then a best-of-seven league final. The league champions meet in the Continental Series.",
+    body: "Each club plays 56 games: 14 series of four. Division rivals meet twice, everyone else in the league once. The desk lists what is still open before you sim: inbox notes, a hurt starter, tenders, the draft clock. Before the first game of a series, name a plan. Bats, arms, or gloves give that side a small lift for four games. Rest shortens the injury list. The plan locks once the series starts. Sim a day, a series, or the rest of the regular season. The last four weeks are after the trade deadline. When the schedule ends, four clubs in each league — three division winners and one wild card — play a best-of-five series, then a best-of-seven league final. The league champions meet in the Continental Series.",
   },
   {
     title: "Ratings",
-    body: "Players are graded 20 to 80. Fifty is average, 60 is a good regular, 70 is a star. Hitters show contact, power, eye, speed, defense, and arm. Pitchers show stuff, control, movement, and stamina. Your own organization is an open book. Everyone else is fogged until your scouting staff wears the error down. A higher scouting budget clears the fog faster, including on the draft board.",
+    body: "Players are graded 20 to 80. The label runs poor, fringe, average, above, plus, and elite. On your own club the number is colored to match that word. A fogged grade stays plain until the scouting staff earns it. Hitters show contact, power, eye, speed, defense, and arm. Pitchers show stuff, control, movement, and stamina. A higher scouting budget clears the fog faster, including on the draft board.",
   },
   {
     title: "Roster and contracts",

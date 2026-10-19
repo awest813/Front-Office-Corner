@@ -463,6 +463,7 @@ function beginYear(state, rng, advanced) {
   state.schedule = buildSchedule(state.teams);
   state.week = 0;
   state.day = 0;
+  state.plan = null;
   state.playoffs = null;
   state.awards = null;
   state.digest = [];
@@ -572,6 +573,7 @@ export function createCareer(opts = {}) {
     freeAgents: [],
     focus: [],
     growth: null,
+    plan: null,
     phase: "preseason",
     week: 0,
     day: 0,
@@ -621,7 +623,8 @@ function attendanceRate(state, team) {
 
 function maybeInjure(state, rng, p, pitcher) {
   if (!p || p.injuredWeeks || p.retired) return;
-  const chance = (pitcher ? 0.01 : 0.0075) * (1.45 - (p.durability - 20) / 60);
+  let chance = (pitcher ? 0.01 : 0.0075) * (1.45 - (p.durability - 20) / 60);
+  if (!state.cpu && state.plan?.focus === "rest" && state.plan.week === state.week && p.teamId === state.userTeamId) chance *= 0.55;
   if (!rng.chance(chance)) return;
   p.injuredWeeks = rng.intRange(1, pitcher ? 6 : 4);
   p.morale = clamp(p.morale - 6, 20, 95);
@@ -711,6 +714,9 @@ function finishWeek(state, rng) {
       const g = team.wins + team.losses;
       const wp = g ? team.wins / g : 0.5;
       if (team.active.includes(p.id)) p.morale = clamp(p.morale + (wp - 0.5) * 3, 25, 92);
+      if (!state.cpu && state.plan?.focus === "rest" && state.plan.week === state.week && p.teamId === state.userTeamId && team.active.includes(p.id)) {
+        p.morale = clamp(p.morale + 2, 20, 95);
+      }
     }
   }
   const decay = clamp(0.9 - state.staff.scouting * 0.03, 0.48, 0.93);
@@ -2173,6 +2179,76 @@ export function offerExtension(state, playerId, years, salary) {
   return { ok: true, message: state.flash, ask: round1(ask) };
 }
 
+export const PLANS = [
+  { id: "bats", title: "Bats", text: "Extra swings. Contact and power tick up for this series." },
+  { id: "arms", title: "Arms", text: "A pitching week. Stuff and command tick up for this series." },
+  { id: "gloves", title: "Gloves", text: "Early work on the infield. The defense plays a little tighter." },
+  { id: "rest", title: "Rest", text: "Shorter days. Fewer injuries, and the room stays fresher." },
+];
+
+export function setPlan(state, focus) {
+  if (state.phase !== "season") return { ok: false, message: "The plan is for the regular season." };
+  if (state.day > 0) return { ok: false, message: "The series is already underway." };
+  if (!PLANS.some((plan) => plan.id === focus)) return { ok: false, message: "Pick bats, arms, gloves, or rest." };
+  state.plan = { week: state.week, focus };
+  const named = PLANS.find((plan) => plan.id === focus);
+  state.flash = `This series: ${named.title}.`;
+  return { ok: true, message: state.flash };
+}
+
+export function weekAgenda(state) {
+  const items = [];
+  const team = userTeam(state);
+  const open = (state.inbox || []).filter((item) => !item.resolved);
+  if (open.length) {
+    items.push({
+      id: "inbox",
+      tone: "now",
+      view: "desk",
+      text: `${open.length} ${open.length === 1 ? "note is" : "notes are"} waiting on the desk`,
+    });
+  }
+  const hurtLine = (team.lineup || []).map((slot) => state.players[slot.id]).filter((p) => p && p.injuredWeeks);
+  const hurtArm = (team.rotation || []).map((id) => state.players[id]).filter((p) => p && p.injuredWeeks && !hurtLine.includes(p));
+  const hurt = [...hurtLine, ...hurtArm];
+  if (hurt.length) {
+    items.push({
+      id: "hurt",
+      tone: "now",
+      view: "roster",
+      text: `${hurt.map((p) => p.last).join(", ")} ${hurt.length === 1 ? "is" : "are"} hurt and still on the card`,
+    });
+  }
+  if (!state.staffLocked && ["preseason", "camp"].includes(state.phase) && (state.focus || []).length < 2) {
+    items.push({
+      id: "slate",
+      tone: "soon",
+      view: "roster",
+      text: (state.focus || []).length ? "The development slate has one open chair" : "Name the development slate before Opening Day",
+    });
+  }
+  if (state.phase === "tender" && Object.keys(state.tenders || {}).length) {
+    const n = Object.keys(state.tenders).length;
+    items.push({ id: "tenders", tone: "now", view: "market", text: `${n} ${n === 1 ? "tender is" : "tenders are"} waiting` });
+  }
+  if (state.phase === "free_agency") {
+    items.push({ id: "market", tone: "soon", view: "market", text: "The market is open. Bid, or advance the week." });
+  }
+  if (state.phase === "draft") {
+    const pick = state.draft?.picks?.find((row) => !row.playerId);
+    if (pick?.teamId === state.userTeamId) {
+      items.push({ id: "clock", tone: "now", view: "market", text: `You are on the clock. Round ${pick.round}.` });
+    }
+  }
+  if (state.phase === "season" && state.day === 0 && state.plan?.week !== state.week) {
+    items.push({ id: "plan", tone: "soon", view: "desk", text: "Name a plan before the series starts" });
+  }
+  if (!items.length) {
+    items.push({ id: "clear", tone: "done", view: "", text: "The desk is clear." });
+  }
+  return items;
+}
+
 export function setFocus(state, playerId) {
   if (state.staffLocked || !["preseason", "camp"].includes(state.phase)) {
     return { ok: false, message: "The development slate locks on Opening Day." };
@@ -2405,6 +2481,7 @@ export function hydrate(raw) {
   if (!Array.isArray(state.focus)) state.focus = [];
   if (!Array.isArray(state.awardsLog)) state.awardsLog = [];
   if (state.growth == null) state.growth = null;
+  if (!state.plan || typeof state.plan !== "object") state.plan = null;
   return state;
 }
 

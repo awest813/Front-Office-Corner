@@ -15,9 +15,22 @@ export const TUNING = {
   outSpeed: 0.08,
 };
 
-function live(p, key) {
+function live(p, key, bonus = 0) {
   const swing = Math.round(((p.morale || 55) - 55) / 28 * 3);
-  return clamp((p[key] || 40) + swing, 20, 80);
+  return clamp((p[key] || 40) + swing + bonus, 20, 80);
+}
+
+function seriesFocus(state) {
+  if (!state?.plan || state.cpu || state.plan.week !== state.week) return "";
+  return state.plan.focus || "";
+}
+
+function planBonus(state, player, key) {
+  const focus = seriesFocus(state);
+  if (!focus || !player || player.teamId !== state.userTeamId) return 0;
+  if (focus === "bats" && (key === "contact" || key === "power")) return 2;
+  if (focus === "arms" && (key === "stuff" || key === "control")) return 2;
+  return 0;
 }
 
 function n(grade) {
@@ -34,14 +47,14 @@ function addPit(p, key, amt = 1) {
   p.career.pit[key] += amt;
 }
 
-function plate(rng, batter, pitcher, def, park) {
-  const c = n(live(batter, "contact"));
-  const pw = n(live(batter, "power"));
-  const ey = n(live(batter, "eye"));
+function plate(rng, batter, pitcher, def, park, bonus = () => 0) {
+  const c = n(live(batter, "contact", bonus(batter, "contact")));
+  const pw = n(live(batter, "power", bonus(batter, "power")));
+  const ey = n(live(batter, "eye", bonus(batter, "eye")));
   const sp = n(batter.speed);
-  const st = n(live(pitcher, "stuff"));
-  const ct = n(live(pitcher, "control"));
-  const mv = n(live(pitcher, "movement"));
+  const st = n(live(pitcher, "stuff", bonus(pitcher, "stuff")));
+  const ct = n(live(pitcher, "control", bonus(pitcher, "control")));
+  const mv = n(live(pitcher, "movement", bonus(pitcher, "movement")));
   let k = TUNING.kBase + (st - ey) * TUNING.kEye + (st - c) * TUNING.kContact;
   let bb = TUNING.bbBase + (ey - ct) * TUNING.bbEye + (0.5 - ct) * 0.05;
   k = clamp(k, 0.07, 0.40);
@@ -255,8 +268,13 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
   const awayStaff = buildStaff(state, away);
   homeStaff.current = armState(homeStaff.starter, true);
   awayStaff.current = armState(awayStaff.starter, true);
-  const homeDef = defenseRating(state, home);
-  const awayDef = defenseRating(state, away);
+  let homeDef = defenseRating(state, home);
+  let awayDef = defenseRating(state, away);
+  if (seriesFocus(state) === "gloves") {
+    if (home.id === state.userTeamId) homeDef = clamp(homeDef + 0.045, 0.05, 0.95);
+    if (away.id === state.userTeamId) awayDef = clamp(awayDef + 0.045, 0.05, 0.95);
+  }
+  const bonus = (player, key) => planBonus(state, player, key);
   const park = home.park || 1;
   let homeScore = 0;
   let awayScore = 0;
@@ -341,7 +359,7 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
       }
       const beforeH = homeScore;
       const beforeA = awayScore;
-      let type = plate(rng, batter, pit.player, def, park);
+      let type = plate(rng, batter, pit.player, def, park, bonus);
       addBat(batter, "pa", 1);
       if (type === "K") {
         addBat(batter, "ab", 1);

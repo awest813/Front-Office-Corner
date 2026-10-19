@@ -225,8 +225,15 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   min-width: 1.6em;
   text-align: center;
   font-family: var(--mono);
+  font-weight: 700;
 }
-.grade.fog { color: var(--muted); }
+.grade.fog, .pill.fog b { color: var(--muted); font-weight: 500; }
+.grade.poor, .pill.poor b { color: var(--bad); }
+.grade.fringe, .pill.fringe b { color: #d7a07a; }
+.grade.avg, .pill.avg b { color: var(--text); }
+.grade.above, .pill.above b { color: #d5e2c4; }
+.grade.plus, .pill.plus b { color: var(--good); }
+.grade.star, .pill.star b { color: var(--brass); }
 .pill {
   display: inline-flex;
   gap: 6px;
@@ -237,6 +244,37 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 }
 .pill b { font-family: var(--mono); font-size: 16px; }
 .pill small { color: var(--muted); }
+.agenda {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 8px 0;
+  color: var(--text);
+}
+div.agenda { cursor: default; }
+button.agenda:hover { color: var(--text); }
+.agenda.now { color: var(--brass); }
+.agenda.done { color: var(--good); }
+.badge {
+  display: inline-block;
+  min-width: 1.1em;
+  margin-left: 8px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: var(--brass);
+  color: #24180b;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.plan-grid .choice { padding: 8px 10px; }
+.plan-grid .choice strong { font-size: 16px; }
+.plan-grid .choice:disabled { opacity: 0.55; cursor: default; transform: none; }
 
 .dossier { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; align-items: start; }
 .report { font-family: var(--serif); font-size: 16px; line-height: 1.5; margin: 0; }

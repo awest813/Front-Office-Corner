@@ -9,7 +9,10 @@ import {
   respondInbox,
   serialize,
   setFocus,
+  setPlan,
+  simDay,
   simWeek,
+  weekAgenda,
 } from "../js/career.js";
 import { playerReport, playerRole } from "../js/report.js";
 
@@ -111,4 +114,51 @@ test("one series can leave a desk note without breaking the roster", () => {
     if (item.kind === "callup") assert.equal(state.players[item.playerId].teamId, "gulls");
   }
   assert.equal(audit(state).length, 0, audit(state).join("; "));
+});
+
+test("the week list and the series plan", () => {
+  const state = createCareer({ seed: 3, teamId: "gulls" });
+  const agenda = weekAgenda(state);
+  assert.ok(agenda.some((item) => item.id === "inbox" || item.id === "slate"));
+  assert.equal(setPlan(state, "bats").ok, false);
+
+  assert.equal(openSeason(state).ok, true);
+  assert.ok(weekAgenda(state).some((item) => item.id === "plan"));
+  const team = state.teams.find((t) => t.id === "gulls");
+  const batter = state.players[team.lineup[0].id];
+  const contact = batter.contact;
+  const power = batter.power;
+  assert.equal(setPlan(state, "bats").ok, true);
+  assert.equal(state.plan.focus, "bats");
+  assert.equal(setPlan(state, "nope").ok, false);
+  assert.equal(weekAgenda(state).some((item) => item.id === "plan"), false);
+
+  const day = simDay(state);
+  assert.equal(day.ok, true, day.message);
+  assert.equal(batter.contact, contact);
+  assert.equal(batter.power, power);
+  assert.equal(setPlan(state, "rest").ok, false);
+  state.players[team.lineup[0].id].injuredWeeks = 2;
+  assert.ok(weekAgenda(state).some((item) => item.id === "hurt"));
+  assert.equal(audit(state).length, 0, audit(state).join("; "));
+
+  const raw = JSON.parse(serialize(state));
+  delete raw.plan;
+  const back = hydrate(raw);
+  assert.equal(back.plan, null);
+
+  const bats = createCareer({ seed: 8, teamId: "express", cpu: true });
+  const gloves = createCareer({ seed: 8, teamId: "express", cpu: true });
+  assert.equal(openSeason(bats).ok, true);
+  assert.equal(openSeason(gloves).ok, true);
+  bats.plan = { week: 0, focus: "bats" };
+  gloves.plan = { week: 0, focus: "gloves" };
+  assert.equal(simWeek(bats).ok, true);
+  assert.equal(simWeek(gloves).ok, true);
+  const left = bats.teams.find((t) => t.id === "express");
+  const right = gloves.teams.find((t) => t.id === "express");
+  assert.equal(left.wins, right.wins);
+  assert.equal(left.rs, right.rs);
+  assert.equal(left.ra, right.ra);
+  assert.equal(audit(bats).length, 0, audit(bats).join("; "));
 });
