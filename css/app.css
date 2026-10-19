@@ -296,7 +296,7 @@ input[type="text"], input[type="number"], select {
 .toasts {
   position: fixed;
   left: 204px;
-  top: 76px;
+  bottom: 78px;
   display: flex;
   flex-direction: column;
   gap: 8px;

@@ -872,12 +872,28 @@ function maybePlayingTime(state, rng, team) {
     pushInbox(state, {
       kind: "playing",
       title: `${p.last} wants the card`,
-      body: `${fullName(p)} wants the ${slot.pos} spot ahead of ${cur.last}. He will remember the answer.`,
+      body: `${fullName(p)} wants the ${positionName(slot.pos)} spot ahead of ${cur.last}. He will remember the answer.`,
       playerId: p.id,
       slot: i,
     });
     return;
   }
+}
+
+function positionName(pos) {
+  return {
+    C: "catcher",
+    "1B": "first base",
+    "2B": "second base",
+    "3B": "third base",
+    SS: "shortstop",
+    LF: "left field",
+    CF: "center field",
+    RF: "right field",
+    DH: "designated hitter",
+    SP: "starter",
+    RP: "relief",
+  }[pos] || "the field";
 }
 
 function maybeClaim(state, rng, team) {
@@ -898,7 +914,7 @@ function maybeClaim(state, rng, team) {
   pushInbox(state, {
     kind: "claim",
     title: `${them.city} might lose ${p.last}`,
-    body: `${fullName(p)}, ${p.age}, is a ${p.pos} another club can live without. The claim fee is ${fmtMoney(0.4)}, and the farm has a bed.`,
+    body: `${fullName(p)}, ${p.age}, plays ${positionName(p.pos)} for ${them.city}. Another club can live without him. The claim fee is ${fmtMoney(0.4)}, and the farm has a bed.`,
     playerId: p.id,
     fee: 0.4,
   });
