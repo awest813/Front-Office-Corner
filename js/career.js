@@ -2326,6 +2326,89 @@ export function currentSeries(state) {
   return state.schedule[state.week].find((g) => g.home === state.userTeamId || g.away === state.userTeamId) || null;
 }
 
+function bookFog(state, team) {
+  const ids = team?.active || [];
+  let n = 0;
+  let sum = 0;
+  for (const id of ids) {
+    const p = state.players[id];
+    if (!p) continue;
+    n += 1;
+    sum += p.scoutNoise || 0;
+  }
+  return n ? sum / n : 10;
+}
+
+function nextArm(state, team) {
+  const order = team.rotation || [];
+  const turn = team.rotationTurn || 0;
+  for (let i = 0; i < order.length; i += 1) {
+    const p = state.players[order[(turn + i) % order.length]];
+    if (p && !p.injuredWeeks && !p.retired) return p;
+  }
+  return (team.active || []).map((id) => state.players[id]).find((p) => p && p.isPitcher && !p.injuredWeeks) || null;
+}
+
+function bestBat(state, team) {
+  const ids = (team.lineup || []).map((slot) => slot.id);
+  const pool = (ids.length ? ids : team.active || []).map((id) => state.players[id]).filter((p) => p && !p.isPitcher && !p.injuredWeeks && !p.retired);
+  if (!pool.length) return null;
+  return pool.slice().sort((a, b) => overall(b) - overall(a))[0];
+}
+
+function revealPlayer(p, fog, kind) {
+  if (!p || fog >= 8) return null;
+  const name = fog >= 3.5 ? p.last : fullName(p);
+  const role = kind === "arm" ? (p.role === "SP" ? "Gets the ball" : "In the pen") : "The bat they trust";
+  const detail = fog >= 3.5 ? role : `${role} · ${gradeLabel(overall(p))}`;
+  return { id: p.id, name, detail };
+}
+
+function parkLine(park) {
+  if (park >= 1.06) return "The park helps the bats.";
+  if (park <= 0.95) return "The park helps the arms.";
+  return "The park plays honest.";
+}
+
+export function seriesBrief(state) {
+  const series = currentSeries(state);
+  if (!series) return null;
+  const team = userTeam(state);
+  const oppId = series.home === team.id ? series.away : series.home;
+  const opp = teamById(state, oppId);
+  const home = teamById(state, series.home);
+  if (!opp || !home) return null;
+  const fog = bookFog(state, opp);
+  const played = opp.wins + opp.losses;
+  const diff = opp.rs - opp.ra;
+  return {
+    opponentId: opp.id,
+    where: series.home === team.id ? "Home" : "Road",
+    parkName: home.parkName,
+    parkLine: parkLine(home.park),
+    record: played ? `${opp.wins}-${opp.losses}` : "No games yet",
+    diff: played >= 4 ? diff : null,
+    fog,
+    played: (series.results || []).filter(Boolean).length,
+    arm: revealPlayer(nextArm(state, opp), fog, "arm"),
+    bat: revealPlayer(bestBat(state, opp), fog, "bat"),
+    note: fog >= 8 ? "The book on them is still shut." : fog >= 3.5 ? "Scouting has a shape, not a grade." : "The book is open.",
+  };
+}
+
+export function clubhouse(state) {
+  const team = userTeam(state);
+  const room = (team?.active || []).map((id) => state.players[id]).filter(Boolean);
+  if (!room.length) return { morale: 55, sour: 0, line: "The room is empty." };
+  const morale = room.reduce((sum, p) => sum + (p.morale || 55), 0) / room.length;
+  const sour = room.filter((p) => (p.morale || 55) < 45).length;
+  let line = "The room is even.";
+  if (morale >= 70) line = "The room is sharp.";
+  else if (morale < 52) line = "The room is restless.";
+  if (sour >= 3) line += ` ${sour} players are sour.`;
+  return { morale: Math.round(morale), sour, line };
+}
+
 export function leaders(state) {
   const lg = leagueLines(state);
   const played = Math.max(1, ...state.teams.map((t) => t.wins + t.losses));

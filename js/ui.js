@@ -7,6 +7,7 @@ import {
   autoSetRotation,
   createCareer,
   currentSeries,
+  clubhouse,
   demote,
   DIFFICULTIES,
   displayGrade,
@@ -35,6 +36,7 @@ import {
   setBlock,
   setFocus,
   setPlan,
+  seriesBrief,
   PLANS,
   weekAgenda,
   setLineup,
@@ -331,21 +333,14 @@ function viewDesk() {
   const team = userTeamOf(career);
   const paper = career.paper || { kicker: "The Corner Post", headline: "The desk is clear", deck: "", body: "" };
   const goals = career.goals.map((g) => `<div class="goal${g.met ? " met" : ""}"><span>${esc(g.text)}</span><span class="num">${esc(goalExtra(career, g))}</span></div>`).join("");
-  const series = currentSeries(career);
-  let next = "The schedule is being printed.";
-  if (series) {
-    const oppId = series.home === team.id ? series.away : series.home;
-    const opp = teamOf(career, oppId);
-    const where = series.home === team.id ? "Home" : "Road";
-    const done = series.results.filter(Boolean).length;
-    next = `<strong>${esc(teamLabel(opp))}</strong><div class="muted">${where} · ${esc(opp.parkName)} · ${done} of 4 played</div>`;
-  }
+  const series = seriesCard();
   const inbox = career.inbox.filter((i) => !i.resolved);
   const inboxHtml = inbox.length ? inbox.map(inboxCard).join("") : `<p class="muted">The inbox is clear.</p>`;
   const digest = career.digest?.length > 1 ? `<div class="card"><h3>While the weeks ran</h3>${career.digest.slice(-8).map((d) => `<div class="goal"><span>Week ${d.week}</span><span>${esc(d.text)}</span></div>`).join("")}</div>` : "";
   const focus = (career.focus || []).map((id) => career.players[id]).filter(Boolean);
   const slate = career.staffLocked ? "" : `<section class="card"><h3>${icon("slate")}<span>Development slate</span></h3>${focus.length ? focus.map((p) => `<div class="goal"><span>${playerButton(p)}</span><span>${esc(playerRole(p))}</span></div>`).join("") : "<p class=\"muted\">Name two farm players, 25 or under, from the ledger. They get the extra winter reps.</p>"}</section>`;
   const growth = career.growth && (career.growth.rose.length || career.growth.fell.length) ? `<section class="card"><h3>Since last winter</h3>${career.growth.rose.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="good">${row.from} to ${row.to}</span></div>`).join("")}${career.growth.fell.map((row) => `<div class="goal"><span>${esc(row.name)}</span><span class="bad">${row.from} to ${row.to}</span></div>`).join("")}</section>` : "";
+  const room = clubhouse(career);
   const agenda = weekAgenda(career).map((item) => {
     const cls = `agenda ${item.tone}`;
     if (!item.view || item.view === ui.view) return `<div class="${cls}"><span>${esc(item.text)}</span></div>`;
@@ -362,14 +357,26 @@ function viewDesk() {
     <div class="stack">
       <section class="card"><h3>${icon("week")}<span>This week</span></h3>${agenda}</section>
       ${plan}
-      <section class="card"><h3>${icon("series")}<span>This series</span></h3>${next}</section>
+      <section class="card"><h3>${icon("series")}<span>This series</span></h3>${series}</section>
       <section class="card"><h3>${icon("inbox")}<span>Inbox</span></h3>${inboxHtml}</section>
+      <section class="card"><h3>${icon("room")}<span>Clubhouse</span></h3><p>${esc(room.line)}</p><p class="muted">Mood ${room.morale}.</p></section>
       ${slate}
       ${growth}
       <section class="card"><h3>${icon("goals")}<span>Owner's goals</span></h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style.replace("-", " "))}. ${esc(team.blurb)}</p></section>
       ${digest}
     </div>
   </div>`;
+}
+
+function seriesCard() {
+  const brief = seriesBrief(career);
+  if (!brief) return `<p class="muted">The schedule is being printed.</p>`;
+  const opp = teamOf(career, brief.opponentId);
+  const diff = brief.diff == null ? "" : ` · ${brief.diff > 0 ? "+" : ""}${brief.diff} runs`;
+  const line = (mark, row) => (row ? `<p>${icon(mark)}<span><strong>${esc(row.name)}</strong>. ${esc(row.detail)}</span></p>` : "");
+  return `<div class="club">${seal(opp, 40)}<div><strong>${esc(teamLabel(opp))}</strong><div class="muted">${esc(brief.where)} · ${esc(brief.parkName)} · ${brief.played} of 4 played</div></div></div>
+    <p class="muted">${esc(brief.record)}${esc(diff)} · ${esc(brief.parkLine)}</p>
+    <div class="brief">${line("arms", brief.arm)}${line("bats", brief.bat)}<p class="muted">${esc(brief.note)}</p></div>`;
 }
 
 function planCard() {

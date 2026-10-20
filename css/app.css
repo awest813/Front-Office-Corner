@@ -317,6 +317,8 @@ button.agenda:hover { color: var(--text); }
   font-weight: 700;
   text-align: center;
 }
+.brief p { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
+.brief .ico { width: 16px; height: 16px; color: var(--brass); margin-top: 2px; }
 .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .plan-grid .choice { padding: 8px 10px; }
 .plan-grid .choice strong { display: flex; align-items: center; gap: 8px; font-size: 16px; }

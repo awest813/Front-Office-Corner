@@ -8,11 +8,13 @@ import {
   openSeason,
   respondInbox,
   serialize,
+  seriesBrief,
   setFocus,
   setPlan,
   simDay,
   simWeek,
   weekAgenda,
+  clubhouse,
 } from "../js/career.js";
 import { playerReport, playerRole } from "../js/report.js";
 import { crest, icon } from "../js/marks.js";
@@ -118,13 +120,41 @@ test("one series can leave a desk note without breaking the roster", () => {
   assert.equal(audit(state).length, 0, audit(state).join("; "));
 });
 
+test("the series card uses the home park and opens the book when the fog lifts", () => {
+  const state = createCareer({ seed: 11, teamId: "gulls", situation: "contender" });
+  assert.equal(seriesBrief(state).opponentId !== "gulls", true);
+  const early = seriesBrief(state);
+  const gulls = state.teams.find((t) => t.id === "gulls");
+  if (early.where === "Home") assert.equal(early.parkName, gulls.parkName);
+  else assert.notEqual(early.parkName, gulls.parkName);
+  assert.match(early.parkLine, /park/);
+  assert.match(early.note, /book|Scouting/);
+  if (early.fog >= 8) {
+    assert.equal(early.arm, null);
+    assert.equal(early.bat, null);
+  }
+  const opp = state.teams.find((t) => t.id === early.opponentId);
+  for (const id of opp.active) state.players[id].scoutNoise = 0;
+  const open = seriesBrief(state);
+  assert.equal(open.note, "The book is open.");
+  assert.equal(state.players[open.arm.id].isPitcher, true);
+  assert.equal(state.players[open.bat.id].isPitcher, false);
+  assert.match(open.arm.name, /\s/);
+  const room = clubhouse(state);
+  assert.match(room.line, /room/);
+  for (const id of gulls.active) state.players[id].morale = 30;
+  const sour = clubhouse(state);
+  assert.match(sour.line, /restless/);
+  assert.ok(sour.sour >= 3);
+});
+
 test("every club has a mark and the desk icons draw", () => {
   for (const team of TEAMS) {
     const mark = crest(team.id);
     assert.ok(mark.includes("currentColor"), team.id);
     assert.ok(mark.length > 20, team.id);
   }
-  for (const name of ["desk", "roster", "standings", "scores", "wire", "market", "books", "leaders", "october", "trophies", "bats", "arms", "gloves", "rest"]) {
+  for (const name of ["desk", "roster", "standings", "scores", "wire", "market", "books", "leaders", "october", "trophies", "bats", "arms", "gloves", "rest", "room"]) {
     assert.match(icon(name), /<svg/);
   }
 });

@@ -18,6 +18,7 @@ const ICONS = {
   goals: `<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 5v2M12 17v2M5 12h2M17 12h2"/>`,
   series: `<path d="M12 4l6 6-6 6-6-6z"/>`,
   week: `<path d="M5 6h14v13H5z"/><path d="M5 10h14M8 4v4M16 4v4"/>`,
+  room: `<circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/><path d="M4 18c.6-3 2.2-4.5 4-4.5S11.4 15 12 18M12 18c.6-3 2.2-4.5 4-4.5S19.4 15 20 18"/>`,
   diamond: `<path d="M12 3l7 9-7 9-7-9z"/>`,
 };
 
