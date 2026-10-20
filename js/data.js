@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 1;
-export const GAME_VERSION = "1.5.0";
+export const GAME_VERSION = "1.6.0";
 export const MIN_SALARY = 0.74;
 export const LUXURY = 165;
 export const DEADLINE_WEEK = 10;
@@ -78,7 +78,7 @@ export const MANUAL = [
   },
   {
     title: "Roster and contracts",
-    body: "The active roster holds up to 26 players. Everyone else is on the farm. You set the batting order and the defensive positions — catcher through right field, plus a designated hitter — and a five-man rotation. Pre-arbitration players renew near the minimum. After three years of service they are arbitration eligible: tender a contract or let them walk. After six years they hit the open market. An extension's years include the current season. Releasing a veteran leaves most of the remaining money as dead weight. A year on the active roster is a year of service.",
+    body: "The active roster holds up to 26 players. Everyone else is on the farm. The board on the ledger names the thin spots, the bats off the card, the deals that end this year, and the next farm piece. Before Opening Day, name a posture. Push plays the best card. Bridge gives the spot to the younger player when the tools are close. Shop puts expiring deals off the card onto the block. You set the batting order and the defensive positions — catcher through right field, plus a designated hitter — and a five-man rotation. Pre-arbitration players renew near the minimum. After three years of service they are arbitration eligible: tender a contract or let them walk. After six years they hit the open market. An extension's years include the current season. Releasing a veteran leaves most of the remaining money as dead weight. A year on the active roster is a year of service.",
   },
   {
     title: "Trades and free agency",

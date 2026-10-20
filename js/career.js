@@ -574,6 +574,7 @@ export function createCareer(opts = {}) {
     focus: [],
     growth: null,
     plan: null,
+    posture: null,
     phase: "preseason",
     week: 0,
     day: 0,
@@ -2081,14 +2082,16 @@ export function setRotation(state, ids) {
 }
 
 export function autoSetLineup(state) {
-  autoLineup(state, userTeam(state));
-  state.flash = "The staff sets the card.";
+  const bias = state.posture === "bridge" ? "bridge" : "";
+  autoLineup(state, userTeam(state), bias);
+  state.flash = bias ? "The staff sets the card. Close calls went to the younger player." : "The staff sets the card.";
   return { ok: true, message: state.flash };
 }
 
 export function autoSetRotation(state) {
-  autoRotation(state, userTeam(state));
-  state.flash = "The staff sorts the rotation.";
+  const bias = state.posture === "bridge" ? "bridge" : "";
+  autoRotation(state, userTeam(state), bias);
+  state.flash = bias ? "The staff sorts the arms. Close calls went to the younger pitcher." : "The staff sorts the rotation.";
   return { ok: true, message: state.flash };
 }
 
@@ -2179,6 +2182,113 @@ export function offerExtension(state, playerId, years, salary) {
   return { ok: true, message: state.flash, ask: round1(ask) };
 }
 
+function englishList(items) {
+  if (items.length <= 1) return items[0] || "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+export function rosterBoard(state) {
+  const team = userTeam(state);
+  const active = (team?.active || []).map((id) => state.players[id]).filter(Boolean);
+  const hitters = active.filter((p) => !p.isPitcher && !p.retired);
+  const lineupIds = new Set((team?.lineup || []).map((slot) => slot.id));
+  const spots = (team?.lineup || []).map((slot) => {
+    const starter = state.players[slot.id];
+    const backup = hitters
+      .filter((p) => p.id !== slot.id && !p.injuredWeeks && canPlay(p, slot.pos))
+      .sort((a, b) => overall(b) - overall(a))[0];
+    const grade = starter ? overall(starter) : 0;
+    return {
+      pos: slot.pos,
+      id: starter?.id || "",
+      name: starter ? fullName(starter) : "Empty",
+      overall: grade,
+      backupId: backup?.id || "",
+      backup: backup ? fullName(backup) : "",
+      thin: !starter || grade < 48 || !backup,
+    };
+  });
+  const thin = spots.filter((spot) => spot.thin).map((spot) => spot.pos);
+  const spare = hitters
+    .filter((p) => !lineupIds.has(p.id))
+    .sort((a, b) => overall(b) - overall(a))
+    .slice(0, 3)
+    .map((p) => ({
+      id: p.id,
+      name: fullName(p),
+      pos: p.pos,
+      overall: overall(p),
+      onBlock: !!p.onBlock,
+      years: p.contract?.years || 0,
+    }));
+  const clock = active
+    .filter((p) => (p.contract?.years || 0) <= 1 && ((p.contract?.salary || 0) >= 2 || (p.service || 0) >= 5))
+    .sort((a, b) => (b.contract?.salary || 0) - (a.contract?.salary || 0))
+    .slice(0, 4)
+    .map((p) => ({
+      id: p.id,
+      name: fullName(p),
+      years: p.contract?.years || 0,
+      salary: p.contract?.salary || 0,
+    }));
+  const kids = (team?.farm || [])
+    .map((id) => state.players[id])
+    .filter((p) => p && !p.retired && p.age <= 25)
+    .sort((a, b) => (b.potential || 0) - (a.potential || 0) || overall(b) - overall(a));
+  const kid = kids[0];
+  const light = (team?.rotation || [])
+    .map((id) => state.players[id])
+    .filter((p) => p && overall(p) < 46);
+  let line = thin.length ? `Thin at ${englishList(thin)}.` : "Every spot on the card has a body behind it.";
+  if (light.length) line += ` Light arms: ${englishList(light.map((p) => p.last))}.`;
+  return {
+    spots,
+    spare,
+    clock,
+    next: kid ? { id: kid.id, name: fullName(kid), age: kid.age, pos: kid.pos, potential: kid.potential } : null,
+    line,
+    posture: state.posture || "",
+  };
+}
+
+export const POSTURES = [
+  { id: "push", title: "Push", text: "Play the best card you have. The staff sorts by the present." },
+  { id: "bridge", title: "Bridge", text: "When two players are close, the younger one gets the spot." },
+  { id: "shop", title: "Shop", text: "The card stays put. Expiring deals off the card go on the block." },
+];
+
+function markShopSpares(state) {
+  const team = userTeam(state);
+  const keep = new Set([...(team.lineup || []).map((slot) => slot.id), ...(team.rotation || [])]);
+  let marked = 0;
+  for (const id of team.active) {
+    const p = state.players[id];
+    if (!p || keep.has(p.id) || p.age < 29 || (p.contract?.years || 0) > 1) continue;
+    if (!p.onBlock) marked += 1;
+    p.onBlock = true;
+  }
+  return marked;
+}
+
+export function setPosture(state, id) {
+  if (state.staffLocked || !["preseason", "camp"].includes(state.phase)) {
+    return { ok: false, message: "The posture locks on Opening Day." };
+  }
+  if (!POSTURES.some((row) => row.id === id)) return { ok: false, message: "Pick push, bridge, or shop." };
+  state.posture = id;
+  const named = POSTURES.find((row) => row.id === id);
+  if (id === "shop") {
+    const marked = markShopSpares(state);
+    state.flash = marked
+      ? `This year: Shop. ${marked} spare ${marked === 1 ? "part is" : "parts are"} on the block.`
+      : "This year: Shop. No expiring spare parts to mark.";
+  } else {
+    state.flash = `This year: ${named.title}.`;
+  }
+  return { ok: true, message: state.flash };
+}
+
 export const PLANS = [
   { id: "bats", title: "Bats", text: "Extra swings. Contact and power tick up for this series." },
   { id: "arms", title: "Arms", text: "A pitching week. Stuff and command tick up for this series." },
@@ -2242,6 +2352,9 @@ export function weekAgenda(state) {
   }
   if (state.phase === "season" && state.day === 0 && state.plan?.week !== state.week) {
     items.push({ id: "plan", tone: "soon", view: "desk", text: "Name a plan before the series starts" });
+  }
+  if (!state.staffLocked && ["preseason", "camp"].includes(state.phase) && !state.posture) {
+    items.push({ id: "posture", tone: "soon", view: "roster", text: "Name how you will build the club" });
   }
   if (!items.length) {
     items.push({ id: "clear", tone: "done", view: "", text: "The desk is clear." });
@@ -2594,6 +2707,7 @@ export function hydrate(raw) {
   if (!Array.isArray(state.awardsLog)) state.awardsLog = [];
   if (state.growth == null) state.growth = null;
   if (!state.plan || typeof state.plan !== "object") state.plan = null;
+  if (!["push", "bridge", "shop"].includes(state.posture)) state.posture = null;
   return state;
 }
 

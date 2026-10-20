@@ -37,6 +37,9 @@ import {
   setFocus,
   setPlan,
   seriesBrief,
+  rosterBoard,
+  setPosture,
+  POSTURES,
   PLANS,
   weekAgenda,
   setLineup,
@@ -347,6 +350,7 @@ function viewDesk() {
     return `<button type="button" class="${cls}" data-act="nav" data-view="${item.view}"><span>${esc(item.text)}</span></button>`;
   }).join("");
   const plan = planCard();
+  const posture = postureCard();
   return `<div class="desk">
     <article class="paper">
       <div class="mast"><strong>${icon("diamond")}<span>${esc(paper.kicker || "The Corner Post")}</span></strong><span>${career.year}</span></div>
@@ -356,6 +360,7 @@ function viewDesk() {
     </article>
     <div class="stack">
       <section class="card"><h3>${icon("week")}<span>This week</span></h3>${agenda}</section>
+      ${posture}
       ${plan}
       <section class="card"><h3>${icon("series")}<span>This series</span></h3>${series}</section>
       <section class="card"><h3>${icon("inbox")}<span>Inbox</span></h3>${inboxHtml}</section>
@@ -384,6 +389,14 @@ function seriesCard() {
     <div class="brief">${yours}${theirs}${line("bats", brief.bat)}<p class="muted">${esc(brief.note)}</p></div>`;
 }
 
+function postureCard() {
+  if (career.staffLocked || !["preseason", "camp"].includes(career.phase)) return "";
+  const board = rosterBoard(career);
+  const current = career.posture || "";
+  const buttons = POSTURES.map((row) => `<button type="button" class="choice ${current === row.id ? "on" : ""}" data-act="posture" data-id="${row.id}"><strong>${esc(row.title)}</strong><span>${esc(row.text)}</span></button>`).join("");
+  return `<section class="card"><h3>${icon("roster")}<span>How you'll build</span></h3><div class="plan-grid">${buttons}</div><p class="muted">${esc(board.line)}</p></section>`;
+}
+
 function planCard() {
   if (career.phase !== "season") return "";
   const locked = career.day > 0;
@@ -410,6 +423,41 @@ function inboxCard(item) {
 
 function playerButton(p) {
   return `<button type="button" class="linkish" data-act="player" data-id="${p.id}">${esc(fullName(p))}</button>`;
+}
+
+function boardCard() {
+  const board = rosterBoard(career);
+  const named = POSTURES.find((row) => row.id === career.posture);
+  const open = !career.staffLocked && ["preseason", "camp"].includes(career.phase);
+  const buttons = open ? `<div class="plan-grid">${POSTURES.map((row) => `<button type="button" class="choice ${career.posture === row.id ? "on" : ""}" data-act="posture" data-id="${row.id}"><strong>${esc(row.title)}</strong><span>${esc(row.text)}</span></button>`).join("")}</div>` : "";
+  const status = named
+    ? `${named.title}${career.staffLocked ? " is locked for the year." : " is the posture."}`
+    : "No posture named. The staff plays the best card.";
+  const thin = board.spots.filter((spot) => spot.thin).map((spot) => {
+    const player = career.players[spot.id];
+    const who = player ? playerButton(player) : esc(spot.name);
+    const note = spot.backup ? `behind ${spot.backup}` : "no backup";
+    return `<div class="goal"><span>${esc(spot.pos)} · ${who}</span><span class="bad">${esc(note)}</span></div>`;
+  }).join("");
+  const spare = board.spare.map((row) => {
+    const player = career.players[row.id];
+    return `<div class="goal"><span>${playerButton(player)} · ${esc(row.pos)} · ${row.overall}</span><button type="button" class="btn-small" data-act="block" data-id="${row.id}">${row.onBlock ? "On the block" : "Shop him"}</button></div>`;
+  }).join("");
+  const clock = board.clock.map((row) => {
+    const player = career.players[row.id];
+    const label = row.years <= 0 ? "walk year" : `${row.years}y left`;
+    return `<div class="goal"><span>${playerButton(player)}</span><span class="num">${fmtMoney(row.salary)} · ${esc(label)}</span></div>`;
+  }).join("");
+  const next = board.next ? `<div class="goal"><span>${playerButton(career.players[board.next.id])} · ${esc(board.next.pos)} · ${board.next.age}</span><span class="num">POT ${board.next.potential}</span></div>` : "";
+  return `<div class="card"><h3>${icon("roster")}<span>The board</span></h3>
+    <p>${esc(board.line)}</p>
+    <p class="muted">${esc(status)}</p>
+    ${buttons}
+    ${thin}
+    ${spare ? `<p class="muted">Off the card</p>${spare}` : ""}
+    ${clock ? `<p class="muted">Deals that end</p>${clock}` : ""}
+    ${next ? `<p class="muted">Next up on the farm</p>${next}` : ""}
+  </div>`;
 }
 
 function viewRoster() {
@@ -449,6 +497,7 @@ function viewRoster() {
       </tbody></table>
     </section>
     <section class="stack">
+      ${boardCard()}
       <div class="card"><h3>Lineup card</h3>${lineup}<button type="button" class="btn-small" data-act="auto-lineup">Let the staff set it</button></div>
       <div class="card"><h3>Rotation</h3>${rotation}<button type="button" class="btn-small" data-act="auto-rotation">Sort the arms</button></div>
     </section>
@@ -1001,6 +1050,7 @@ function onClick(e) {
   if (act === "inbox") go(() => respondInbox(career, el.dataset.id, el.dataset.choice));
   if (act === "focus") go(() => setFocus(career, el.dataset.id));
   if (act === "plan") go(() => setPlan(career, el.dataset.id));
+  if (act === "posture") go(() => setPosture(career, el.dataset.id));
   if (act === "tender") { setTender(career, el.dataset.id, el.dataset.yes === "1"); playClick(); render(); return; }
   if (act === "bid") {
     const years = Number(document.getElementById(`y-${el.dataset.id}`)?.value);

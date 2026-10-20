@@ -330,7 +330,7 @@ export function payrollOf(state, team) {
   return n;
 }
 
-export function autoLineup(state, team) {
+export function autoLineup(state, team, posture = "") {
   const available = team.active
     .map((id) => state.players[id])
     .filter((p) => p && !p.isPitcher && !p.injuredWeeks && !p.retired);
@@ -338,6 +338,16 @@ export function autoLineup(state, team) {
   const orderPos = ["C", "SS", "CF", "2B", "3B", "RF", "LF", "1B", "DH"];
   const used = new Set();
   const chosen = [];
+  const bridgePick = (cands, pos) => {
+    if (posture !== "bridge" || cands.length < 2) return cands[0];
+    const top = cands[0];
+    const close = cands.filter((p) => {
+      if (pos === "DH") return Math.abs(powerScore(top) - powerScore(p)) <= 4;
+      return Math.abs(top.defense - p.defense) <= 3 && Math.abs(batScore(top) - batScore(p)) <= 4;
+    });
+    close.sort((a, b) => a.age - b.age || batScore(b) - batScore(a));
+    return close[0];
+  };
   for (const pos of orderPos) {
     let cands = pool.filter((p) => !used.has(p.id) && canPlay(p, pos));
     if (!cands.length) cands = pool.filter((p) => !used.has(p.id));
@@ -346,14 +356,15 @@ export function autoLineup(state, team) {
       if (pos === "DH") return powerScore(b) - powerScore(a);
       return (b.defense - a.defense) || (batScore(b) - batScore(a));
     });
-    const pick = cands[0];
+    const pick = bridgePick(cands, pos);
     used.add(pick.id);
     chosen.push(pick);
     chosen[chosen.length - 1] = Object.assign(pick, { _pos: pos });
   }
   while (chosen.length < 9 && pool.some((p) => !used.has(p.id))) {
     const rest = pool.filter((p) => !used.has(p.id));
-    const pick = rest.sort((a, b) => batScore(b) - batScore(a))[0];
+    rest.sort((a, b) => batScore(b) - batScore(a));
+    const pick = bridgePick(rest, "DH");
     used.add(pick.id);
     pick._pos = "DH";
     chosen.push(pick);
@@ -383,13 +394,34 @@ export function autoLineup(state, team) {
   team.lineupCustom = false;
 }
 
-export function autoRotation(state, team) {
+export function autoRotation(state, team, posture = "") {
   const arms = team.active
     .map((id) => state.players[id])
     .filter((p) => p && p.isPitcher && !p.retired);
-  const sps = arms.filter((p) => p.role === "SP").sort((a, b) => overall(b) - overall(a));
-  const rest = arms.filter((p) => p.role !== "SP").sort((a, b) => overall(b) - overall(a));
-  const rot = [...sps, ...rest].slice(0, 5);
+  if (posture !== "bridge") {
+    const sps = arms.filter((p) => p.role === "SP").sort((a, b) => overall(b) - overall(a));
+    const rest = arms.filter((p) => p.role !== "SP").sort((a, b) => overall(b) - overall(a));
+    team.rotation = [...sps, ...rest].slice(0, 5).map((p) => p.id);
+    team.rotationCustom = false;
+    return;
+  }
+  const take = (pool) => {
+    if (!pool.length) return null;
+    const best = Math.max(...pool.map((p) => overall(p)));
+    const close = pool.filter((p) => best - overall(p) <= 3);
+    close.sort((a, b) => a.age - b.age || overall(b) - overall(a));
+    const pick = close[0];
+    pool.splice(pool.indexOf(pick), 1);
+    return pick;
+  };
+  const sps = arms.filter((p) => p.role === "SP");
+  const rest = arms.filter((p) => p.role !== "SP");
+  const rot = [];
+  while (rot.length < 5 && (sps.length || rest.length)) {
+    const pick = take(sps.length ? sps : rest);
+    if (!pick) break;
+    rot.push(pick);
+  }
   team.rotation = rot.map((p) => p.id);
   team.rotationCustom = false;
 }

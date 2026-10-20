@@ -9,6 +9,10 @@ import {
   respondInbox,
   serialize,
   seriesBrief,
+  rosterBoard,
+  setPosture,
+  autoSetLineup,
+  autoSetRotation,
   setFocus,
   setPlan,
   simDay,
@@ -176,6 +180,82 @@ test("the series log keeps each score and the clubhouse names a voice", () => {
   assert.equal(sour.voices[0].id, gulls.active[0]);
   assert.equal(sour.voices[0].sour, true);
   assert.ok(sour.voices.some((v) => !v.sour));
+});
+
+test("a posture changes how the staff builds the card", () => {
+  const state = createCareer({ seed: 11, teamId: "gulls", situation: "contender" });
+  const board = rosterBoard(state);
+  assert.equal(board.spots.length, 9);
+  assert.match(board.line, /Thin|body/);
+  assert.ok(weekAgenda(state).some((item) => item.id === "posture"));
+  assert.equal(setPosture(state, "nope").ok, false);
+
+  const team = state.teams.find((t) => t.id === "gulls");
+  const bench = team.active.map((id) => state.players[id]).find((p) => !p.isPitcher && !team.lineup.some((slot) => slot.id === p.id));
+  bench.age = 31;
+  bench.contract.years = 1;
+  bench.onBlock = false;
+  const starter = state.players[team.lineup[0].id];
+  starter.onBlock = false;
+  const arm = state.players[team.rotation[0]];
+  arm.age = 32;
+  arm.contract.years = 1;
+  arm.onBlock = false;
+  assert.equal(setPosture(state, "shop").ok, true);
+  assert.equal(bench.onBlock, true);
+  assert.equal(starter.onBlock, false);
+  assert.equal(arm.onBlock, false);
+  assert.equal(weekAgenda(state).some((item) => item.id === "posture"), false);
+
+  const hitters = team.active.map((id) => state.players[id]).filter((p) => !p.isPitcher);
+  const older = hitters[0];
+  const younger = hitters[1];
+  for (const p of hitters) {
+    if (p === older || p === younger) continue;
+    p.defense = 30;
+  }
+  for (const key of ["contact", "power", "eye", "speed", "arm"]) {
+    older[key] = 50;
+    younger[key] = 50;
+  }
+  older.positions = ["LF"];
+  younger.positions = ["LF"];
+  older.pos = "LF";
+  younger.pos = "LF";
+  older.age = 34;
+  younger.age = 22;
+  older.defense = 62;
+  younger.defense = 59;
+  assert.equal(setPosture(state, "bridge").ok, true);
+  assert.equal(autoSetLineup(state).ok, true);
+  assert.equal(team.lineup.find((slot) => slot.pos === "LF").id, younger.id);
+  assert.equal(setPosture(state, "push").ok, true);
+  assert.equal(autoSetLineup(state).ok, true);
+  assert.equal(team.lineup.find((slot) => slot.pos === "LF").id, older.id);
+
+  const starters = team.active.map((id) => state.players[id]).filter((p) => p.isPitcher && p.role === "SP");
+  const vet = starters[0];
+  const kid = starters[1];
+  for (const p of starters) {
+    p.stuff = 40;
+    p.control = 40;
+    p.movement = 40;
+    p.stamina = 40;
+  }
+  vet.age = 34;
+  kid.age = 23;
+  vet.stuff = 70;
+  kid.stuff = 68;
+  assert.equal(setPosture(state, "bridge").ok, true);
+  assert.equal(autoSetRotation(state).ok, true);
+  assert.equal(team.rotation[0], kid.id);
+
+  assert.equal(openSeason(state).ok, true);
+  assert.equal(setPosture(state, "shop").ok, false);
+  const raw = JSON.parse(serialize(state));
+  delete raw.posture;
+  assert.equal(hydrate(raw).posture, null);
+  assert.equal(audit(state).length, 0, audit(state).join("; "));
 });
 
 test("every club has a mark and the desk icons draw", () => {
