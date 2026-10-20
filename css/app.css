@@ -239,7 +239,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   font-family: var(--serif);
   font-size: 20px;
 }
-.goal { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.goal { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.goal > span:first-child { min-width: 0; }
+.goal > span:last-child { flex: none; text-align: right; }
 .goal.met { color: var(--good); }
 .inbox-item { padding: 10px 0; border-top: 1px solid var(--line); }
 .inbox-item p { margin: 4px 0 8px; color: var(--muted); font-size: 14px; }

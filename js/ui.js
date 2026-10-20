@@ -436,7 +436,7 @@ function boardCard() {
   const thin = board.spots.filter((spot) => spot.thin).map((spot) => {
     const player = career.players[spot.id];
     const who = player ? playerButton(player) : esc(spot.name);
-    const note = spot.backup ? `behind ${spot.backup}` : "no backup";
+    const note = spot.backup ? spot.backup.split(" ").at(-1) : "No backup";
     return `<div class="goal"><span>${esc(spot.pos)} · ${who}</span><span class="bad">${esc(note)}</span></div>`;
   }).join("");
   const spare = board.spare.map((row) => {
