@@ -27,6 +27,7 @@ import {
   overall,
   payrollOf,
   placeFaBid,
+  playerValue,
   profit,
   promote,
   releasePlayer,
@@ -86,6 +87,7 @@ const ui = {
   screen: "title",
   view: "desk",
   playerId: null,
+  playerBack: "roster",
   newGame: { name: "Jordan Hale", difficulty: "standard", situation: "standard", teamId: "gulls" },
   trade: { teamId: "ospreys", send: [], recv: [], cashSend: 0, cashRecv: 0 },
   modal: null,
@@ -551,7 +553,7 @@ function viewPlayer(p) {
   const pot = displayGrade(p, "potential", career.year, career.userTeamId);
   return `<div class="dossier">
     <section>
-      <button type="button" class="btn-small" data-act="nav" data-view="roster">Back to the ledger</button>
+      <button type="button" class="btn-small" data-act="nav" data-view="${ui.playerBack || "roster"}">${ui.playerBack === "market" ? "Back to the market" : ui.playerBack === "leaders" ? "Back to the leaders" : ui.playerBack === "desk" ? "Back to the desk" : ui.playerBack === "standings" ? "Back to the standings" : ui.playerBack === "scores" ? "Back to the scores" : ui.playerBack === "wire" ? "Back to the wire" : ui.playerBack === "october" ? "Back to October" : ui.playerBack === "trophies" ? "Back to the trophy case" : ui.playerBack === "books" ? "Back to the books" : "Back to the ledger"}</button>
       <h3 class="section-title">${esc(fullName(p))}</h3>
       <p class="muted">${esc(p.pos)} · ${esc(playerRole(p))} · ${esc(clubRole(p))} · ${p.bats}/${p.throws} · Age ${p.age} · OVR <span class="grade ${exact ? gradeBand(ovr) : "fog"}">${ovr}</span> · POT <span class="grade ${pot.exact ? gradeBand(pot.value) : "fog"}">${pot.value}</span></p>
       <div class="grades">${pills}</div>
@@ -640,17 +642,19 @@ function viewTrade() {
   const them = teamOf(career, ui.trade.teamId) || career.teams.find((t) => t.id !== team.id);
   ui.trade.teamId = them.id;
   const options = career.teams.filter((t) => t.id !== team.id).map((t) => `<option value="${t.id}" ${t.id === them.id ? "selected" : ""}>${esc(t.city)} ${esc(t.name)}</option>`).join("");
-  const list = (ids, side) => ids.map((id) => career.players[id]).filter(Boolean).map((p) => {
+  const chip = (p, side) => {
     const on = (side === "send" ? ui.trade.send : ui.trade.recv).includes(p.id);
-    return `<button type="button" class="btn-small" data-act="trade-toggle" data-side="${side}" data-id="${p.id}">${on ? "✓ " : ""}${esc(p.last)} · ${esc(p.pos)} · ${shownOverall(career, p)}</button>`;
-  }).join(" ");
+    const farm = (side === "send" ? team.farm : them.farm).includes(p.id);
+    return `<span class="trade-chip"><button type="button" class="btn-small" data-act="trade-toggle" data-side="${side}" data-id="${p.id}">${on ? "✓" : "Add"}</button><button type="button" class="linkish" data-act="player" data-id="${p.id}">${esc(p.last)}</button><span class="muted">${esc(p.pos)} · ${shownOverall(career, p)}${farm ? " · farm" : ""}</span></span>`;
+  };
+  const list = (ids, side) => ids.map((id) => career.players[id]).filter(Boolean).map((p) => chip(p, side)).join("");
   const preview = tradePreview(career, them.id, ui.trade.send, ui.trade.recv, ui.trade.cashSend, ui.trade.cashRecv);
   const closed = career.phase === "season" && career.week >= 10;
   return `<section class="panel"><h3>Trade wire ${closed ? "· deadline passed" : ""}</h3>
     <label class="field">Club<select data-act="trade-team">${options}</select></label>
     <div class="split" style="margin-top:12px">
-      <div><h4>Yours</h4><div class="row-actions">${list(team.active, "send")}</div></div>
-      <div><h4>Theirs</h4><div class="row-actions">${list(them.active, "recv")}</div></div>
+      <div><h4>Yours</h4><div class="trade-list">${list([...team.active, ...team.farm], "send")}</div></div>
+      <div><h4>Theirs</h4><div class="trade-list">${list([...them.active, ...them.farm], "recv")}</div></div>
     </div>
     <div class="row-actions" style="margin-top:12px">
       <label class="field">Cash you send<input class="tiny" data-act="cash-send" type="number" min="0" max="12" step="0.5" value="${ui.trade.cashSend}"></label>
@@ -671,7 +675,9 @@ function viewFreeAgency() {
     <td><input class="tiny" id="s-${p.id}" type="number" min="0.74" step="0.1" value="${p.demand || 1}"></td>
     <td><button type="button" class="btn-small" data-act="bid" data-id="${p.id}">Bid</button></td>
   </tr>`).join("");
-  return `<section><h3 class="section-title">Open market</h3><p class="muted">Room against the budget: ${fmtMoney(room)}. Offers resolve when you advance the week. ${career.freeAgents.length} players are unsigned.</p>
+  const shown = Math.min(40, career.freeAgents.length);
+  const more = career.freeAgents.length > shown ? ` Showing the ${shown} highest asks.` : "";
+  return `<section><h3 class="section-title">Open market</h3><p class="muted">Room against the budget: ${fmtMoney(room)}. Offers resolve when you advance the week. ${career.freeAgents.length} players are unsigned.${more}</p>
     <table class="grid"><thead><tr><th>Player</th><th>Pos</th><th class="r">Age</th><th class="r">OVR</th><th class="r">Ask</th><th>Years</th><th>AAV</th><th></th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 
@@ -712,7 +718,7 @@ function viewBooks() {
   const team = userTeamOf(career);
   const b = career.books;
   const bar = (label, value, max, color) => `<div class="bar"><span>${label}</span><span class="track"><i style="width:${Math.max(value ? 2 : 0, Math.min(100, (Math.abs(value) / max) * 100))}%;background:${color}"></i></span><span class="num">${fmtMoney(value)}</span></div>`;
-  const max = Math.max(1, b.tickets, b.media, b.payroll, b.staff, b.dead, b.tax);
+  const max = Math.max(1, b.tickets, b.media, b.payroll, b.staff, b.dead, b.tax, b.cashIn, b.cashOut);
   const locked = career.phase !== "preseason" || career.staffLocked;
   const slider = (key, label) => `<label class="field">${label} · ${career.staff[key].toFixed(1)}<input type="range" min="0" max="12" step="0.5" value="${career.staff[key]}" data-act="staff" data-key="${key}" ${locked ? "disabled" : ""}></label>`;
   const att = team.homeGames ? Math.round(team.attendanceTotal / team.homeGames) : 0;
@@ -727,9 +733,11 @@ function viewBooks() {
         ${bar("Staff", b.staff, max, "#c47b3b")}
         ${bar("Dead money", b.dead, max, "#a3562a")}
         ${bar("Luxury tax", b.tax, max, "#7e2e2e")}
+        ${bar("Cash in", b.cashIn, max, "#8fd0a8")}
+        ${bar("Cash out", b.cashOut, max, "#e39284")}
       </div>
       <p>Profit <strong class="${profit(career) >= 0 ? "good" : "bad"}">${fmtMoney(profit(career))}</strong> · Payroll rank ${rank} of 24 · Avg crowd ${att.toLocaleString("en-US")}</p>
-      <p class="muted">Luxury tax starts at $165M. ${esc(team.parkName)} plays ${team.park > 1 ? "a little lively" : "a little big"}.</p>
+      <p class="muted">Luxury tax starts at $165M. ${esc(team.parkName)} ${team.park >= 1.06 ? "helps the bats" : team.park <= 0.95 ? "helps the arms" : "plays honest"}.</p>
     </section>
     <section class="card"><h3>Staff plan</h3>
       ${slider("scouting", "Scouting")}
@@ -751,7 +759,7 @@ function viewLeaders() {
     ${block("RBI", bat(board.rbi, (p) => p.season.bat.rbi))}
     ${block("ERA", bat(board.era, (p) => fmtEra(p.season.pit.er, p.season.pit.outs)))}
     ${block("Strikeouts", bat(board.k, (p) => p.season.pit.k))}
-    ${block("Value", bat(board.war, (p) => (p.isPitcher ? p.season.pit.w + " W" : p.season.bat.hr + " HR")))}
+    ${block("Value", bat(board.war, (p) => playerValue(career, p).toFixed(1)))}
   </div>`;
 }
 
@@ -769,7 +777,7 @@ function viewOctober() {
   if (!po) return `<section class="panel"><h3>October</h3><p class="muted">The bracket is not set.</p></section>`;
   const blocks = ["Harbor", "Summit"].map((name) => {
     const league = po.leagues[name];
-    return `<section><h3 class="section-title">${name}</h3><div class="bracket">${seriesBlock("Series", league.ds[0])}${seriesBlock("Series", league.ds[1])}${seriesBlock("League final", league.final)}</div></section>`;
+    return `<section><h3 class="section-title">${name}</h3><div class="bracket">${seriesBlock("Division series", league.ds[0])}${seriesBlock("Division series", league.ds[1])}${seriesBlock("League final", league.final)}</div></section>`;
   }).join("");
   return `${blocks}<section><h3 class="section-title">Continental Series</h3>${seriesBlock("For the chair and the cup", po.continental) || "<p class='muted'>Waiting on the league finals.</p>"}<p>Your October: ${esc(po.userFinish || "undecided")}.</p></section>`;
 }
@@ -1070,7 +1078,14 @@ function onClick(e) {
     after(result, "confirm");
     return;
   }
-  if (act === "player") { ui.playerId = el.dataset.id; ui.view = "roster"; playClick(); render(); return; }
+  if (act === "player") {
+    ui.playerBack = ui.view === "roster" ? (ui.playerBack || "roster") : ui.view;
+    ui.playerId = el.dataset.id;
+    ui.view = "roster";
+    playClick();
+    render();
+    return;
+  }
   if (act === "inbox") go(() => respondInbox(career, el.dataset.id, el.dataset.choice));
   if (act === "focus") go(() => setFocus(career, el.dataset.id));
   if (act === "plan") go(() => setPlan(career, el.dataset.id));

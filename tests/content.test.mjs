@@ -17,6 +17,8 @@ import {
   setPlan,
   simDay,
   simWeek,
+  leaders,
+  playerValue,
   weekAgenda,
   clubhouse,
 } from "../js/career.js";
@@ -390,4 +392,15 @@ test("the week list and the series plan", () => {
   assert.equal(left.rs, right.rs);
   assert.equal(left.ra, right.ra);
   assert.equal(audit(bats).length, 0, audit(bats).join("; "));
+});
+
+test("the value board is the season value, not a counting stat", () => {
+  const state = createCareer({ seed: 11, teamId: "gulls", situation: "contender" });
+  assert.equal(openSeason(state).ok, true);
+  assert.equal(simWeek(state).ok, true);
+  const board = leaders(state);
+  assert.ok(board.war.length > 0);
+  for (let i = 1; i < board.war.length; i += 1) {
+    assert.ok(playerValue(state, board.war[i - 1]) >= playerValue(state, board.war[i]));
+  }
 });

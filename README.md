@@ -35,7 +35,7 @@ Job security is the loss condition during the season and at the year-end review.
 
 ## Keys
 
-D day, W series, O sim to October, Esc close or back to the desk, R roster, T market, F books, N wire, B standings, L leaders, P October, Y trophies, M manual.
+D day, W series, O sim to October, Esc close or back to the desk, R roster, T market, F books, N wire, B standings, S scores, L leaders, P October, Y trophies, M manual.
 
 ## Saves
 

@@ -638,7 +638,7 @@ function maybeInjure(state, rng, p, pitcher) {
     pushInbox(state, {
       kind: "info",
       title: `${p.last} is hurt`,
-      body: `${fullName(p)} is out roughly ${p.injuredWeeks} week${p.injuredWeeks === 1 ? "" : "s"}. The staff will patch the lineup.`,
+      body: `${fullName(p)} is out roughly ${p.injuredWeeks} week${p.injuredWeeks === 1 ? "" : "s"}. He stays on the card until the next day is simmed.`,
     });
   }
 }
@@ -2606,6 +2606,10 @@ export function leaders(state) {
     k: top(rows.filter((p) => p.isPitcher), (p) => p.season.pit.k),
     war: top(rows.filter((p) => p.season.bat.pa > 20 || p.season.pit.outs > 15), (p) => playerWar(p, lg)),
   };
+}
+
+export function playerValue(state, player) {
+  return playerWar(player, leagueLines(state));
 }
 
 export function userTeamOf(state) {
