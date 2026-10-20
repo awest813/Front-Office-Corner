@@ -359,7 +359,7 @@ function viewDesk() {
       ${plan}
       <section class="card"><h3>${icon("series")}<span>This series</span></h3>${series}</section>
       <section class="card"><h3>${icon("inbox")}<span>Inbox</span></h3>${inboxHtml}</section>
-      <section class="card"><h3>${icon("room")}<span>Clubhouse</span></h3><p>${esc(room.line)}</p><p class="muted">Mood ${room.morale}.</p></section>
+      <section class="card"><h3>${icon("room")}<span>Clubhouse</span></h3><p>${esc(room.line)}</p>${(room.voices || []).map((v) => `<div class="goal"><span><button type="button" class="linkish" data-act="player" data-id="${v.id}">${esc(v.name)}</button></span><span class="num ${v.sour ? "bad" : ""}">${v.morale}</span></div>`).join("")}<p class="muted">Mood ${room.morale}.</p></section>
       ${slate}
       ${growth}
       <section class="card"><h3>${icon("goals")}<span>Owner's goals</span></h3>${goals}<p class="muted">${esc(team.owner.name)}, ${esc(team.owner.style.replace("-", " "))}. ${esc(team.blurb)}</p></section>
@@ -375,9 +375,13 @@ function seriesCard() {
   const diff = brief.diff == null ? "" : ` · ${brief.diff > 0 ? "+" : ""}${brief.diff} runs`;
   const line = (mark, row) => (row ? `<p>${icon(mark)}<span><strong>${esc(row.name)}</strong>. ${esc(row.detail)}</span></p>` : "");
   const season = brief.record === "No games yet" ? brief.record : `Their season ${brief.record}`;
+  const games = (brief.games || []).map((g) => `<span class="${g.win ? "good" : g.played ? "bad" : ""}"><b>G${g.n}</b>${g.played ? esc(g.line) : "—"}</span>`).join("");
+  const yours = brief.yours ? `<p>${icon("arms")}<span>You send <strong>${esc(brief.yours.name)}</strong>.</span></p>` : "";
+  const theirs = brief.arm ? `<p>${icon("arms")}<span>They send <strong>${esc(brief.arm.name)}</strong>. ${esc(brief.arm.detail)}</span></p>` : "";
   return `<div class="club">${seal(opp, 40)}<div><strong>${esc(teamLabel(opp))}</strong><div class="muted">${esc(brief.where)} · ${esc(brief.parkName)}</div><div class="muted">${brief.played} of 4 played</div></div></div>
+    <div class="series-log">${games}</div>
     <p class="muted">${esc(season)}${esc(diff)} · ${esc(brief.parkLine)}</p>
-    <div class="brief">${line("arms", brief.arm)}${line("bats", brief.bat)}<p class="muted">${esc(brief.note)}</p></div>`;
+    <div class="brief">${yours}${theirs}${line("bats", brief.bat)}<p class="muted">${esc(brief.note)}</p></div>`;
 }
 
 function planCard() {

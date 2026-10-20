@@ -320,6 +320,9 @@ button.agenda:hover { color: var(--text); }
 }
 .brief p { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
 .brief .ico { width: 16px; height: 16px; color: var(--brass); margin-top: 2px; }
+.series-log { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 8px 0; }
+.series-log span { display: block; text-align: center; background: var(--panel-2); border-radius: 8px; padding: 6px 4px; font-size: 12px; }
+.series-log b { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
 .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .plan-grid .choice { padding: 8px 10px; }
 .plan-grid .choice strong { display: flex; align-items: center; gap: 8px; font-size: 16px; }

@@ -148,6 +148,36 @@ test("the series card uses the home park and opens the book when the fog lifts",
   assert.ok(sour.sour >= 3);
 });
 
+test("the series log keeps each score and the clubhouse names a voice", () => {
+  const state = createCareer({ seed: 11, teamId: "gulls", situation: "contender" });
+  const early = seriesBrief(state);
+  assert.equal(early.games.length, 4);
+  assert.equal(early.games.every((g) => !g.played), true);
+  assert.equal(state.players[early.yours.id].isPitcher, true);
+  assert.equal(state.players[early.yours.id].teamId, "gulls");
+  const room = clubhouse(state);
+  assert.ok(room.voices.length >= 1);
+  assert.ok(room.voices.at(-1).name.includes(" "));
+
+  assert.equal(openSeason(state).ok, true);
+  const day = simDay(state);
+  assert.equal(day.ok, true, day.message);
+  const after = seriesBrief(state);
+  assert.equal(after.games[0].played, true);
+  assert.match(after.games[0].line, /^[WL] \d+–\d+$/);
+  assert.equal(after.games[1].played, false);
+  assert.equal(after.parkName, state.teams.find((t) => t.id === "gulls").parkName);
+  assert.equal(state.players[after.yours.id].teamId, "gulls");
+
+  const gulls = state.teams.find((t) => t.id === "gulls");
+  for (const id of gulls.active) state.players[id].morale = 60;
+  state.players[gulls.active[0]].morale = 20;
+  const sour = clubhouse(state);
+  assert.equal(sour.voices[0].id, gulls.active[0]);
+  assert.equal(sour.voices[0].sour, true);
+  assert.ok(sour.voices.some((v) => !v.sour));
+});
+
 test("every club has a mark and the desk icons draw", () => {
   for (const team of TEAMS) {
     const mark = crest(team.id);

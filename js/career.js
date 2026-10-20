@@ -2370,6 +2370,19 @@ function parkLine(park) {
   return "The park plays honest.";
 }
 
+function seriesGames(state, series) {
+  const userId = state.userTeamId;
+  const slots = series.results || [];
+  return Array.from({ length: 4 }, (_, i) => {
+    const box = slots[i];
+    if (!box) return { n: i + 1, played: false, line: "" };
+    const us = box.homeId === userId ? box.homeRuns : box.awayRuns;
+    const them = box.homeId === userId ? box.awayRuns : box.homeRuns;
+    const win = box.winner === userId;
+    return { n: i + 1, played: true, win, line: `${win ? "W" : "L"} ${us}–${them}` };
+  });
+}
+
 export function seriesBrief(state) {
   const series = currentSeries(state);
   if (!series) return null;
@@ -2381,6 +2394,8 @@ export function seriesBrief(state) {
   const fog = bookFog(state, opp);
   const played = opp.wins + opp.losses;
   const diff = opp.rs - opp.ra;
+  const games = seriesGames(state, series);
+  const next = games.some((g) => !g.played) ? nextArm(state, team) : null;
   return {
     opponentId: opp.id,
     where: series.home === team.id ? "Home" : "Road",
@@ -2389,7 +2404,9 @@ export function seriesBrief(state) {
     record: played ? `${opp.wins}-${opp.losses}` : "No games yet",
     diff: played >= 4 ? diff : null,
     fog,
-    played: (series.results || []).filter(Boolean).length,
+    played: games.filter((g) => g.played).length,
+    games,
+    yours: next ? { id: next.id, name: fullName(next) } : null,
     arm: revealPlayer(nextArm(state, opp), fog, "arm"),
     bat: revealPlayer(bestBat(state, opp), fog, "bat"),
     note: fog >= 8 ? "The book on them is still shut." : fog >= 3.5 ? "Scouting has a shape, not a grade." : "The book is open.",
@@ -2399,14 +2416,26 @@ export function seriesBrief(state) {
 export function clubhouse(state) {
   const team = userTeam(state);
   const room = (team?.active || []).map((id) => state.players[id]).filter(Boolean);
-  if (!room.length) return { morale: 55, sour: 0, line: "The room is empty." };
+  if (!room.length) return { morale: 55, sour: 0, line: "The room is empty.", voices: [] };
   const morale = room.reduce((sum, p) => sum + (p.morale || 55), 0) / room.length;
   const sour = room.filter((p) => (p.morale || 55) < 45).length;
   let line = "The room is even.";
   if (morale >= 70) line = "The room is sharp.";
   else if (morale < 52) line = "The room is restless.";
   if (sour >= 3) line += ` ${sour} players are sour.`;
-  return { morale: Math.round(morale), sour, line };
+  const ranked = room.slice().sort((a, b) => (a.morale || 55) - (b.morale || 55) || a.last.localeCompare(b.last));
+  const low = ranked[0];
+  const high = ranked[ranked.length - 1];
+  const sourList = ranked.filter((p) => (p.morale || 55) < 45).slice(0, 3);
+  const picked = sourList.length ? sourList.slice() : [low];
+  if (high && !picked.some((p) => p.id === high.id)) picked.push(high);
+  const voices = picked.map((p) => ({
+    id: p.id,
+    name: fullName(p),
+    morale: Math.round(p.morale || 55),
+    sour: (p.morale || 55) < 45,
+  }));
+  return { morale: Math.round(morale), sour, line, voices };
 }
 
 export function leaders(state) {
