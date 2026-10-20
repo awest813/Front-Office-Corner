@@ -322,6 +322,9 @@ button.agenda:hover { color: var(--text); }
 }
 .brief p { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
 .brief .ico { width: 16px; height: 16px; color: var(--brass); margin-top: 2px; }
+.pbp { list-style: none; margin: 8px 0 0; padding: 0; max-height: 440px; overflow: auto; }
+.pbp li { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.pbp li.pbp-inn { display: block; border-top: 0; padding-top: 12px; color: var(--brass); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
 .series-log { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 8px 0; }
 .series-log span { display: block; text-align: center; background: var(--panel-2); border-radius: 8px; padding: 6px 4px; font-size: 12px; }
 .series-log b { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }

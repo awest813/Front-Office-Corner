@@ -258,6 +258,28 @@ test("a posture changes how the staff builds the card", () => {
   assert.equal(audit(state).length, 0, audit(state).join("; "));
 });
 
+test("your game keeps a play-by-play and the rest of the slate does not", () => {
+  const state = createCareer({ seed: 11, teamId: "gulls", situation: "contender" });
+  assert.equal(openSeason(state).ok, true);
+  const day = simDay(state);
+  assert.equal(day.ok, true, day.message);
+  const box = state.lastBox;
+  assert.ok(box.plays.length >= 24, `plays ${box.plays.length}`);
+  for (const play of box.plays) {
+    assert.ok(play.inning >= 1);
+    assert.ok(play.half === "Top" || play.half === "Bot");
+    assert.ok(play.text.length > 3);
+    assert.match(play.score, /^\d+–\d+$/);
+  }
+  assert.ok(box.plays.some((play) => /strikes out|grounds out|flies out|walks|singles|doubles|homers/.test(play.text)));
+  assert.equal(box.plays.at(-1).score, `${box.awayRuns}–${box.homeRuns}`);
+  const other = state.schedule[0].find((game) => game.home !== "gulls" && game.away !== "gulls");
+  const quiet = other.results.find(Boolean);
+  assert.ok(quiet);
+  assert.equal(quiet.plays, undefined);
+  assert.equal(audit(state).length, 0, audit(state).join("; "));
+});
+
 test("every club has a mark and the desk icons draw", () => {
   for (const team of TEAMS) {
     const mark = crest(team.id);

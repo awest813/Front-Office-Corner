@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 1;
-export const GAME_VERSION = "1.6.0";
+export const GAME_VERSION = "1.7.0";
 export const MIN_SALARY = 0.74;
 export const LUXURY = 165;
 export const DEADLINE_WEEK = 10;
@@ -70,7 +70,7 @@ export const MANUAL = [
   },
   {
     title: "The season",
-    body: "Each club plays 56 games: 14 series of four. Division rivals meet twice, everyone else in the league once. The desk lists what is still open before you sim: inbox notes, a hurt starter, tenders, the draft clock. The series card names the park you are actually in, keeps the four scores, and names the arm you are sending. Once scouting wears the fog down, it also names their arm and the bat they trust. The clubhouse line is the mood of your own room, and it names who is quiet and who is sharp. Before the first game of a series, name a plan. Bats, arms, or gloves give that side a small lift for four games. Rest shortens the injury list. The plan locks once the series starts. Sim a day, a series, or the rest of the regular season. The last four weeks are after the trade deadline. When the schedule ends, four clubs in each league — three division winners and one wild card — play a best-of-five series, then a best-of-seven league final. The league champions meet in the Continental Series.",
+    body: "Each club plays 56 games: 14 series of four. Division rivals meet twice, everyone else in the league once. The desk lists what is still open before you sim: inbox notes, a hurt starter, tenders, the draft clock. The series card names the park you are actually in, keeps the four scores, and names the arm you are sending. Once scouting wears the fog down, it also names their arm and the bat they trust. The clubhouse line is the mood of your own room, and it names who is quiet and who is sharp. Before the first game of a series, name a plan. Bats, arms, or gloves give that side a small lift for four games. Rest shortens the injury list. The plan locks once the series starts. Sim a day, a series, or the rest of the regular season. Your own games keep a play-by-play on the score: every out, walk, hit, and stolen base, and the score after the play. The last four weeks are after the trade deadline. When the schedule ends, four clubs in each league — three division winners and one wild card — play a best-of-five series, then a best-of-seven league final. The league champions meet in the Continental Series.",
   },
   {
     title: "Ratings",

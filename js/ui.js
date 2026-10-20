@@ -578,7 +578,24 @@ function linescore(box) {
   const notes = (box.notes || []).slice(0, 8).map((n) => `<li>${esc(n)}</li>`).join("");
   const arm = (id) => (id && career.players[id] ? esc(fullName(career.players[id])) : "");
   const decisions = [box.wp ? `W ${arm(box.wp)}` : "", box.lp ? `L ${arm(box.lp)}` : "", box.sv ? `S ${arm(box.sv)}` : ""].filter(Boolean).join(" · ");
-  return `<div class="linescore"><table class="grid"><thead><tr><th></th>${head}<th class="r">R</th><th class="r">H</th><th class="r">E</th></tr></thead><tbody>${row(box.awayId, box.awayInnings, box.awayRuns, box.awayHits, box.awayErrors)}${row(box.homeId, box.homeInnings, box.homeRuns, box.homeHits, box.homeErrors)}</tbody></table>${decisions ? `<p class="muted">${decisions}</p>` : ""}${notes ? `<ul>${notes}</ul>` : ""}</div>`;
+  const log = playByPlay(box);
+  return `<div class="linescore"><table class="grid"><thead><tr><th></th>${head}<th class="r">R</th><th class="r">H</th><th class="r">E</th></tr></thead><tbody>${row(box.awayId, box.awayInnings, box.awayRuns, box.awayHits, box.awayErrors)}${row(box.homeId, box.homeInnings, box.homeRuns, box.homeHits, box.homeErrors)}</tbody></table>${decisions ? `<p class="muted">${decisions}</p>` : ""}${log || (notes ? `<ul>${notes}</ul>` : "")}</div>`;
+}
+
+function playByPlay(box) {
+  const plays = box?.plays || [];
+  if (!plays.length) return "";
+  let last = "";
+  const rows = [];
+  for (const play of plays) {
+    const head = `${play.half} ${play.inning}`;
+    if (head !== last) {
+      rows.push(`<li class="pbp-inn">${esc(head)}</li>`);
+      last = head;
+    }
+    rows.push(`<li><span>${esc(play.text)}</span><span class="num">${esc(play.score)}</span></li>`);
+  }
+  return `<p class="muted">Play by play. The score is visitors–home.</p><ol class="pbp">${rows.join("")}</ol>`;
 }
 
 function viewScores() {
@@ -737,7 +754,8 @@ function seriesBlock(title, series) {
   const name = (id) => esc(teamOf(career, id)?.name || "");
   const score = `${name(series.high)} ${series.wins[series.high] || 0} — ${name(series.low)} ${series.wins[series.low] || 0}`;
   const winner = series.winner ? ` · ${name(series.winner)} win` : "";
-  return `<div class="card"><h3>${esc(title)}</h3><p>${score}${winner}</p></div>`;
+  const logged = (series.games || []).filter((game) => game.plays?.length);
+  return `<div class="card"><h3>${esc(title)}</h3><p>${score}${winner}</p>${logged.length ? playByPlay(logged.at(-1)) : ""}</div>`;
 }
 
 function viewOctober() {

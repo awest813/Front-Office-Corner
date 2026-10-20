@@ -287,6 +287,7 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
   const homeInn = [];
   const awayInn = [];
   const notes = [];
+  const plays = [];
   const hrs = [];
   const hitTypes = new Map();
   const appearedBat = new Set();
@@ -298,6 +299,10 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
   const index = { home: 0, away: 0 };
   const note = (text) => {
     if (log && notes.length < 28) notes.push(text);
+  };
+  const say = (half, text) => {
+    if (!log) return;
+    plays.push({ inning, half, text, score: `${awayScore}–${homeScore}` });
   };
 
   function creditRunners(ids) {
@@ -324,10 +329,13 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
     let runs = 0;
     const catcher = (side === "home" ? away.lineup : home.lineup).find((s) => s.pos === "C");
     const catcherArm = catcher ? n(state.players[catcher.id]?.arm || 50) : 0.5;
+    const half = side === "home" ? "Bot" : "Top";
     while (outs < 3 && pas < 48) {
       pas += 1;
       const leadForPitcher = side === "home" ? awayScore - homeScore : homeScore - awayScore;
+      const pitched = staff.current;
       hook(staff, inning, leadForPitcher);
+      if (staff.current !== pitched) say(half, `${staff.current.player.last} comes in to pitch.`);
       const pit = staff.current;
       if (!appearedPit.has(pit.player.id)) {
         appearedPit.add(pit.player.id);
@@ -343,12 +351,14 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
           addBat(runner, "sb", 1);
           bases[1] = bases[0];
           bases[0] = null;
+          say(half, `${runner.last} steals second.`);
         } else {
           addBat(runner, "cs", 1);
           bases[0] = null;
           outs += 1;
           pit.outingOuts += 1;
           addPit(pit.player, "outs", 1);
+          say(half, `${runner.last} is caught stealing.`);
           if (outs >= 3) break;
         }
       }
@@ -368,6 +378,7 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
         outs += 1;
         pit.outingOuts += 1;
         addPit(pit.player, "outs", 1);
+        say(half, `${batter.last} strikes out against ${pit.player.last}.`);
       } else if (type === "OUT_FLY" && bases[2] && outs < 2) {
         addBat(batter, "ab", 1);
         const runner = bases[2];
@@ -384,17 +395,20 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
         pit.outingOuts += 1;
         addPit(pit.player, "outs", 1);
         note(`${inning}: ${batter.last} sac fly, a run scores`);
+        say(half, `${batter.last} sac fly, a run scores.`);
       } else if ((type === "OUT_GB" || type === "OUT_FLY") && type === "OUT_GB" && bases[0] && outs < 2 && rng.chance(0.1)) {
         addBat(batter, "ab", 1);
         bases[0] = null;
         outs += 2;
         pit.outingOuts += 2;
         addPit(pit.player, "outs", 2);
+        say(half, `${batter.last} grounds into a double play.`);
       } else if (type === "OUT_GB" || type === "OUT_FLY") {
         addBat(batter, "ab", 1);
         outs += 1;
         pit.outingOuts += 1;
         addPit(pit.player, "outs", 1);
+        say(half, `${batter.last} ${type === "OUT_GB" ? "grounds out" : "flies out"}.`);
       } else {
         const result = applyPlay(bases, batter, type, rng);
         if (type === "BB") {
@@ -442,6 +456,12 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
           if (type === "HR") note(`${inning}: ${batter.last} homers (${result.scored.length} RBI)`);
           else if (result.scored.length) note(`${inning}: ${batter.last} ${type === "1B" ? "singles" : type === "2B" ? "doubles" : type === "3B" ? "triples" : "reaches"}, ${result.scored.length} score`);
         }
+        const verb = { BB: "walks", HBP: "is hit by a pitch", E: "reaches on an error", "1B": "singles", "2B": "doubles", "3B": "triples", HR: "homers" }[type] || "reaches";
+        const scored = result.scored.length;
+        let line = `${batter.last} ${verb}`;
+        if (type === "HR") line += ` against ${pit.player.last}`;
+        if (scored) line += `, ${scored} ${scored === 1 ? "scores" : "score"}`;
+        say(half, `${line}.`);
         if (outs < 3 && result.outsAdded) {
           const add = Math.min(result.outsAdded, 3 - outs);
           outs += add;
@@ -460,6 +480,7 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
       }
       if (side === "home" && inning >= 9 && homeScore > awayScore) {
         walkoff = true;
+        if (log && plays.length) plays[plays.length - 1].text += " Walkoff.";
         break;
       }
     }
@@ -487,6 +508,7 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
       winP = homeStaff.current;
       lossP = awayStaff.current;
       note(`${inning - 1}: ${slot.player.last} ends it`);
+      if (log) plays.push({ inning: inning - 1, half: "Bot", text: `${slot.player.last} ends it.`, score: `${awayScore}–${homeScore}` });
       break;
     }
   }
@@ -543,6 +565,7 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
     sv: sv?.id || null,
     hrs,
     notes,
+    plays: log && plays.length ? plays : undefined,
     noHitter,
     perfect,
     walkoff,
