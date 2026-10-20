@@ -374,8 +374,9 @@ function seriesCard() {
   const opp = teamOf(career, brief.opponentId);
   const diff = brief.diff == null ? "" : ` · ${brief.diff > 0 ? "+" : ""}${brief.diff} runs`;
   const line = (mark, row) => (row ? `<p>${icon(mark)}<span><strong>${esc(row.name)}</strong>. ${esc(row.detail)}</span></p>` : "");
-  return `<div class="club">${seal(opp, 40)}<div><strong>${esc(teamLabel(opp))}</strong><div class="muted">${esc(brief.where)} · ${esc(brief.parkName)} · ${brief.played} of 4 played</div></div></div>
-    <p class="muted">${esc(brief.record)}${esc(diff)} · ${esc(brief.parkLine)}</p>
+  const season = brief.record === "No games yet" ? brief.record : `Their season ${brief.record}`;
+  return `<div class="club">${seal(opp, 40)}<div><strong>${esc(teamLabel(opp))}</strong><div class="muted">${esc(brief.where)} · ${esc(brief.parkName)}</div><div class="muted">${brief.played} of 4 played</div></div></div>
+    <p class="muted">${esc(season)}${esc(diff)} · ${esc(brief.parkLine)}</p>
     <div class="brief">${line("arms", brief.arm)}${line("bats", brief.bat)}<p class="muted">${esc(brief.note)}</p></div>`;
 }
 
