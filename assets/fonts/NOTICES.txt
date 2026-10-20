@@ -1,0 +1,10 @@
+Front Office Corner bundles the following fonts:
+
+Noto Sans and Noto Serif
+Copyright 2010-2020 Google Inc. / Google LLC
+Licensed under the SIL Open Font License, Version 1.1. See OFL-1.1.txt.
+Reserved Font Names: Noto, Noto Sans, Noto Serif.
+
+JetBrains Mono
+Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+Licensed under the Apache License, Version 2.0. See Apache-2.0.txt.

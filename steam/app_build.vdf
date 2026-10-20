@@ -1,0 +1,20 @@
+"AppBuild"
+{
+	"AppID" "YOUR_APP_ID"
+	"Desc" "Front Office Corner"
+	"ContentRoot" "../dist/win-unpacked/"
+	"BuildOutput" "output/"
+	"Depots"
+	{
+		"YOUR_DEPOT_ID"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+			"FileExclusion" "*.pdb"
+		}
+	}
+}
