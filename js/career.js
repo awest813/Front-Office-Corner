@@ -855,6 +855,7 @@ function maybeCallup(state, rng, team) {
   const worst = peers.slice().sort((a, b) => overall(a) - overall(b))[0];
   if (!worst || overall(kid) < overall(worst) - 6) return;
   if (rng.chance(0.35) && overall(kid) < overall(worst)) return;
+  if (!callupHasChair(state, team, kid)) return;
   pushInbox(state, {
     kind: "callup",
     title: `${kid.last} is knocking`,
@@ -884,6 +885,33 @@ function maybePlayingTime(state, rng, team) {
       slot: i,
     });
     return;
+  }
+}
+
+function callupHasChair(state, team, kid) {
+  if (team.active.length < ACTIVE_MAX) return true;
+  if (team.farm.length >= FARM_MAX) return false;
+  const hitters = team.active.filter((id) => !state.players[id].isPitcher).length;
+  const arms = team.active.filter((id) => state.players[id].isPitcher).length;
+  if (!kid.isPitcher && hitters <= 9) return false;
+  if (kid.isPitcher && arms <= 8) return false;
+  return true;
+}
+
+function liftHurtHitters(state, team, holdId) {
+  const pool = team.active
+    .map((id) => state.players[id])
+    .filter((p) => p && !p.isPitcher && !p.injuredWeeks && !p.retired && p.id !== holdId);
+  const used = new Set(team.lineup.map((slot) => slot.id));
+  for (const slot of team.lineup) {
+    const cur = state.players[slot.id];
+    const ok = cur && !cur.isPitcher && !cur.injuredWeeks && !cur.retired && team.active.includes(cur.id);
+    if (ok) continue;
+    used.delete(slot.id);
+    const repl = pool.find((q) => !used.has(q.id) && canPlay(q, slot.pos)) || pool.find((q) => !used.has(q.id));
+    if (!repl) continue;
+    slot.id = repl.id;
+    used.add(repl.id);
   }
 }
 
@@ -1949,11 +1977,12 @@ export function respondInbox(state, inboxId, choice) {
 function answerCallup(state, item, choice) {
   const team = userTeam(state);
   const p = state.players[item.playerId];
-  item.resolved = true;
   if (!p || p.teamId !== team.id || !team.farm.includes(p.id)) {
+    item.resolved = true;
     return { ok: false, message: "He is no longer on the farm." };
   }
   if (choice !== "accept") {
+    item.resolved = true;
     p.morale = clamp(p.morale - 7, 20, 95);
     state.flash = `${p.last} heard the no.`;
     return { ok: true, message: state.flash };
@@ -1972,6 +2001,7 @@ function answerCallup(state, item, choice) {
   }
   const up = promote(state, p.id);
   if (!up.ok) return up;
+  item.resolved = true;
   p.morale = clamp(p.morale + 6, 20, 95);
   pushNews(state, {
     kind: "roster",
@@ -1985,16 +2015,23 @@ function answerCallup(state, item, choice) {
 function answerPlaying(state, item, choice) {
   const team = userTeam(state);
   const p = state.players[item.playerId];
-  item.resolved = true;
-  if (!p || !team.active.includes(p.id)) return { ok: false, message: "He is not available." };
+  if (!p || !team.active.includes(p.id)) {
+    item.resolved = true;
+    return { ok: false, message: "He is not available." };
+  }
   if (choice !== "accept") {
+    item.resolved = true;
     p.morale = clamp(p.morale - 6, 20, 95);
     state.flash = `${p.last} will sit, and he knows it.`;
     return { ok: true, message: state.flash };
   }
   if (p.injuredWeeks) return { ok: false, message: `${p.last} is hurt.` };
+  liftHurtHitters(state, team, p.id);
   const slot = team.lineup[item.slot];
-  if (!slot) return { ok: false, message: "The card has moved." };
+  if (!slot) {
+    item.resolved = true;
+    return { ok: false, message: "The card has moved." };
+  }
   const oldId = slot.id;
   const other = team.lineup.find((s) => s.id === p.id);
   if (other) other.id = oldId;
@@ -2004,6 +2041,7 @@ function answerPlaying(state, item, choice) {
     if (other) other.id = p.id;
     return { ok: false, message: "The staff cannot make that card legal." };
   }
+  item.resolved = true;
   team.lineupCustom = true;
   p.morale = clamp(p.morale + 7, 20, 95);
   state.flash = `${p.last} is in the lineup.`;

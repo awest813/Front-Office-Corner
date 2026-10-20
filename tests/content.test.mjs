@@ -23,6 +23,7 @@ import {
 import { playerReport, playerRole } from "../js/report.js";
 import { crest, icon } from "../js/marks.js";
 import { TEAMS } from "../js/data.js";
+import { canPlay } from "../js/roster.js";
 
 test("a scouting report names the player and hides raw grades when the fog is thick", () => {
   const state = createCareer({ seed: 5, teamId: "gulls", gmName: "Casey Quinn" });
@@ -109,6 +110,57 @@ test("a claim and a call-up change the roster and an old save still loads", () =
   const back = hydrate(serialize(state));
   assert.deepEqual(back.focus, []);
   assert.ok(Array.isArray(back.awardsLog));
+
+  const blocked = state.players[user.farm.find((id) => state.players[id] && !user.active.includes(id))];
+  assert.ok(blocked);
+  while (user.active.length < 26) user.active.push(user.active[0]);
+  user.active.length = 26;
+  while (user.farm.length < 16) user.farm.push(blocked.id);
+  user.farm.length = 16;
+  if (!user.farm.includes(blocked.id)) user.farm[15] = blocked.id;
+  state.inbox.push({
+    id: "i-up-full",
+    resolved: false,
+    kind: "callup",
+    playerId: blocked.id,
+    replaceId: worst.id,
+    title: "Up again",
+    body: "No chair.",
+  });
+  const stuck = respondInbox(state, "i-up-full", "accept");
+  assert.equal(stuck.ok, false, stuck.message);
+  assert.match(stuck.message, /open chair/);
+  assert.equal(state.inbox.find((item) => item.id === "i-up-full").resolved, false);
+  assert.equal(user.active.includes(blocked.id), false);
+});
+
+test("a playing-time yes lifts the other hurt starter", () => {
+  const state = createCareer({ seed: 11, teamId: "gulls", situation: "contender" });
+  assert.equal(openSeason(state).ok, true);
+  const team = state.teams.find((t) => t.id === "gulls");
+  const slot = team.lineup.findIndex((row, index) => {
+    const bench = team.active.map((id) => state.players[id]).find((p) => p && !p.isPitcher && !p.injuredWeeks && !team.lineup.some((s) => s.id === p.id) && canPlay(p, row.pos));
+    return index > 0 && bench;
+  });
+  assert.ok(slot > 0);
+  const bench = team.active.map((id) => state.players[id]).find((p) => p && !p.isPitcher && !team.lineup.some((s) => s.id === p.id) && canPlay(p, team.lineup[slot].pos));
+  const hurtId = team.lineup[0].id;
+  state.players[hurtId].injuredWeeks = 3;
+  state.inbox.push({
+    id: "i-play",
+    resolved: false,
+    kind: "playing",
+    playerId: bench.id,
+    slot,
+    title: "Card",
+    body: "Wants in.",
+  });
+  const started = respondInbox(state, "i-play", "accept");
+  assert.equal(started.ok, true, started.message);
+  assert.equal(team.lineup[slot].id, bench.id);
+  assert.notEqual(team.lineup[0].id, hurtId);
+  assert.equal(state.inbox.find((item) => item.id === "i-play").resolved, true);
+  assert.equal(audit(state).length, 0, audit(state).join("; "));
 });
 
 test("one series can leave a desk note without breaking the roster", () => {
