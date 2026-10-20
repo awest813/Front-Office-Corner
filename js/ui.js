@@ -138,7 +138,10 @@ function toast(text, kind = "") {
   setTimeout(() => {
     const idx = ui.toasts.findIndex((t) => t.id === id);
     if (idx >= 0) ui.toasts.splice(idx, 1);
-    document.querySelector(`[data-toast="${id}"]`)?.remove();
+    const node = document.querySelector(`[data-toast="${id}"]`);
+    const notes = node?.closest(".bar-notes");
+    node?.remove();
+    if (notes && !notes.querySelector("[data-toast]")) notes.remove();
   }, 4200);
 }
 
@@ -327,7 +330,7 @@ function actionbar() {
   if (career.phase === "draft") push("draft-best", "Take the top name on your board", true);
   if (career.phase === "camp") push("open-camp", "Open camp", true);
   const notes = ui.toasts.length
-    ? `<div class="bar-notes">${ui.toasts.map((t) => `<div class="toast ${t.kind}">${esc(t.text)}</div>`).join("")}</div>`
+    ? `<div class="bar-notes">${ui.toasts.map((t) => `<div class="toast ${t.kind}" data-toast="${t.id}">${esc(t.text)}</div>`).join("")}</div>`
     : "";
   return `<footer class="actionbar"><div class="bar-actions">${buttons.join("")}</div><span class="spacer">Front Office Corner ${GAME_VERSION}</span>${notes}</footer>`;
 }
@@ -586,6 +589,7 @@ function playByPlay(box) {
   const plays = box?.plays || [];
   if (!plays.length) return "";
   let last = "";
+  let prev = "";
   const rows = [];
   for (const play of plays) {
     const head = `${play.half} ${play.inning}`;
@@ -593,7 +597,9 @@ function playByPlay(box) {
       rows.push(`<li class="pbp-inn">${esc(head)}</li>`);
       last = head;
     }
-    rows.push(`<li><span>${esc(play.text)}</span><span class="num">${esc(play.score)}</span></li>`);
+    const run = prev !== "" && play.score !== prev;
+    prev = play.score;
+    rows.push(`<li${run ? ` class="pbp-run"` : ""}><span>${esc(play.text)}</span><span class="num">${esc(play.score)}</span></li>`);
   }
   return `<p class="muted">Play by play. The score is visitors–home.</p><ol class="pbp">${rows.join("")}</ol>`;
 }
@@ -1198,7 +1204,7 @@ function onKey(e) {
     return;
   }
   if (!career || ui.screen !== "game") return;
-  const map = { d: "sim-day", w: "sim-week", o: "sim-october", r: "roster", t: "market", f: "books", n: "wire", b: "standings", l: "leaders", p: "october", y: "trophies", m: "manual" };
+  const map = { d: "sim-day", w: "sim-week", o: "sim-october", r: "roster", t: "market", f: "books", n: "wire", b: "standings", s: "scores", l: "leaders", p: "october", y: "trophies", m: "manual" };
   if (key === "m") { ui.returnScreen = "game"; ui.screen = "manual"; render(); return; }
   if (map[key] === "sim-day" || map[key] === "sim-week" || map[key] === "sim-october") {
     document.querySelector(`[data-act="${map[key]}"]`)?.click();

@@ -272,6 +272,8 @@ test("your game keeps a play-by-play and the rest of the slate does not", () => 
     assert.match(play.score, /^\d+–\d+$/);
   }
   assert.ok(box.plays.some((play) => /strikes out|grounds out|flies out|walks|singles|doubles|homers/.test(play.text)));
+  assert.equal(box.plays.some((play) => /\d+ scores/.test(play.text)), false);
+  assert.ok(box.plays.some((play) => /a run scores|runs score/.test(play.text)));
   assert.equal(box.plays.at(-1).score, `${box.awayRuns}–${box.homeRuns}`);
   const other = state.schedule[0].find((game) => game.home !== "gulls" && game.away !== "gulls");
   const quiet = other.results.find(Boolean);

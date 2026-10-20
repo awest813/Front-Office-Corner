@@ -37,6 +37,10 @@ function n(grade) {
   return clamp((grade - 20) / 60, 0, 1);
 }
 
+function runPhrase(count) {
+  return count === 1 ? "a run scores" : `${count} runs score`;
+}
+
 function addBat(p, key, amt = 1) {
   p.season.bat[key] += amt;
   p.career.bat[key] += amt;
@@ -454,13 +458,13 @@ export function simulateGame(state, rng, homeId, awayId, opts = {}) {
           addPit(pit.player, "r", result.scored.length);
           if (earned) addPit(pit.player, "er", result.scored.length);
           if (type === "HR") note(`${inning}: ${batter.last} homers (${result.scored.length} RBI)`);
-          else if (result.scored.length) note(`${inning}: ${batter.last} ${type === "1B" ? "singles" : type === "2B" ? "doubles" : type === "3B" ? "triples" : "reaches"}, ${result.scored.length} score`);
+          else if (result.scored.length) note(`${inning}: ${batter.last} ${type === "1B" ? "singles" : type === "2B" ? "doubles" : type === "3B" ? "triples" : "reaches"}, ${runPhrase(result.scored.length)}`);
         }
         const verb = { BB: "walks", HBP: "is hit by a pitch", E: "reaches on an error", "1B": "singles", "2B": "doubles", "3B": "triples", HR: "homers" }[type] || "reaches";
         const scored = result.scored.length;
         let line = `${batter.last} ${verb}`;
         if (type === "HR") line += ` against ${pit.player.last}`;
-        if (scored) line += `, ${scored} ${scored === 1 ? "scores" : "score"}`;
+        if (scored) line += `, ${runPhrase(scored)}`;
         say(half, `${line}.`);
         if (outs < 3 && result.outsAdded) {
           const add = Math.min(result.outsAdded, 3 - outs);

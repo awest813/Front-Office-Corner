@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 1;
-export const GAME_VERSION = "1.7.0";
+export const GAME_VERSION = "1.7.1";
 export const MIN_SALARY = 0.74;
 export const LUXURY = 165;
 export const DEADLINE_WEEK = 10;
@@ -82,7 +82,7 @@ export const MANUAL = [
   },
   {
     title: "Trades and free agency",
-    body: "Propose trades from the wire desk until the deadline, or answer the offers that arrive in the inbox. The desk's opinion of a deal gets sharper as you fund analytics. In the winter, free agents post a demand. Bid years and salary, then advance the week. Other clubs bid too. Unsigned players lower their ask. Four weeks, then the draft.",
+    body: "Propose trades from the market until the deadline, or answer the offers that arrive in the inbox. The desk's opinion of a deal gets sharper as you fund analytics. In the winter, free agents post a demand. Bid years and salary, then advance the week. Other clubs bid too. Unsigned players lower their ask. Four weeks, then the draft.",
   },
   {
     title: "The draft and the farm",
@@ -102,7 +102,7 @@ export const MANUAL = [
   },
   {
     title: "Shortcuts",
-    body: "D sims a day. W sims the series. O sims to October. Esc closes a dialog, leaves the manual, or returns to the desk. R roster, T the market, F the books, N the wire, B standings, L leaders, P October, Y trophies, M the manual.",
+    body: "D sims a day. W sims the series. O sims to October. Esc closes a dialog, leaves the manual, or returns to the desk. R roster, T the market, F the books, N the wire, B standings, S scores, L leaders, P October, Y trophies, M the manual.",
   },
 ];
 
